@@ -38,6 +38,7 @@ Telemetry → Digital Twin → Health Intelligence → Decision Planner
 
 ```
 aegis/
+├── Dockerfile
 ├── README.md
 ├── .gitignore
 ├── .env.example
