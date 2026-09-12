@@ -1,0 +1,52 @@
+# EGPM base config (PRD §26 — all values are tunable search defaults, not facts)
+data:
+  dataset: synthetic        # synthetic | ncmapss | mimii
+  window_length: 16         # must span >= 1 operational cycle (dataset-dependent)
+  stride: null              # null => S = W (MVP default, one token per window)
+  fs_sync: 1.0
+  train_frac: 0.6
+  val_frac: 0.2
+  split_seed: 0
+
+encoder:
+  embed_dim: 16
+  hidden: 32
+  n_conv_blocks: 3
+  use_attention: false       # ablation A5 flips this
+  pooling: mean
+
+vq:
+  n_codes: 16               # vocabulary size K (sweep per PRD §25 diagnostics)
+  commitment_beta: 0.25
+  ema_decay: 0.99
+
+hsmm:
+  n_states: 6               # MVP default M (incl. absorbing failure state)
+  d_max: 12
+  em_max_iter: 20
+  em_restarts: 0
+
+rul:
+  mc_trajectories: 0        # 0 = expected only; >0 adds median/interval (Phase-2 fields)
+  interval_q: 0.9
+
+anomaly:
+  lambda_trans: 1.0
+  lambda_dur: 1.0
+  threshold_percentile: 99.0
+
+training:
+  lr: 0.001
+  batch_size: 32
+  stage1_steps: 300
+  seed: 0
+  log_every: 50
+
+weights:                    # loss lambdas — start equal, tune on validation (PRD §15)
+  recon: 1.0
+  commit: 1.0
+  hsmm: 1.0
+  rul: 1.0
+  anomaly: 1.0
+  fault: 1.0
+  health: 1.0

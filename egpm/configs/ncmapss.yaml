@@ -1,0 +1,17 @@
+# N-CMAPSS dataset overlay (PRD §3.1 primary dataset — RUL, fault, health)
+defaults:
+  - base
+
+data:
+  dataset: ncmapss
+  # N-CMAPSS: 1 Hz cycle grid; window spans one flight-phase-ish segment
+  window_length: 32
+  stride: null
+  fs_sync: 1.0
+
+hsmm:
+  n_states: 6               # startup, stable, transition, abnormal, degrade, failure
+  d_max: 40                 # long plausible dwell for stable regimes
+
+rul:
+  mc_trajectories: 0        # MVP reports expected; MC median/interval is Phase 2
