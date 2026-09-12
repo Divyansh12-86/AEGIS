@@ -16,6 +16,7 @@ from typing import List, Tuple
 import numpy as np
 
 from .hsmm import HSMM
+from .forward_backward import ForwardBackward
 
 _LOG_EPS = -700.0
 
@@ -36,18 +37,33 @@ class SegmentalViterbi:
         hsmm.validate()
 
     # ------------------------------------------------------------------
-    def decode(self, v_seq: np.ndarray) -> ViterbiResult:
-        v_seq = np.asarray(v_seq, dtype=np.int64)
-        T = len(v_seq)
+    @staticmethod
+    def _obs_len(obs: np.ndarray) -> int:
+        return int(np.asarray(obs).shape[0])
+
+    # ------------------------------------------------------------------
+    def decode(self, obs: np.ndarray) -> ViterbiResult:
+        """Most-probable state-and-duration path.
+
+        ``obs``: event tokens [T] (discrete) or external log-emissions
+        [T, M] (ablation A1 seam), mirroring ForwardBackward.
+        """
+        T = self._obs_len(obs)
         M = self.hsmm.M
         Dmax = self.hsmm.d_max
         logA = np.log(np.clip(self.hsmm.A, 1e-300, None))
         logD = np.log(np.clip(self.hsmm.D.pmf, 1e-300, None))
-        logB = np.log(np.clip(self.hsmm.B, 1e-300, None))
+        # per-window log emissions [M, T] (tokens OR injected logE)
+        logE_T = ForwardBackward._obs_to_logE(self.hsmm, obs)
 
         # prefix emissions for O(1) window products
         c = np.zeros((M, T + 1), dtype=np.float64)
-        c[:, 1:] = np.cumsum(logB[:, v_seq], axis=1)
+        c[:, 1:] = np.cumsum(logE_T, axis=1)
+
+        # zero-diagonal masking consistent with ForwardBackward:
+        # transient same-state segments illegal; absorbing self-loop legal;
+        # degenerate d_max=1 models (A2b) keep the diagonal (it IS the dwell)
+        degenerate = Dmax == 1
 
         # delta[t, j] = best log-lik of v_1..v_t with a segment ending in j at t
         delta = np.full((T, M), _LOG_EPS, dtype=np.float64)
@@ -67,8 +83,9 @@ class SegmentalViterbi:
                         i_star = -1  # sequence start
                     else:
                         ai = delta[t - d] + logA[:, j]
-                        if j != self.hsmm.absorbing:
-                            ai[j] = _LOG_EPS  # zero-diagonal (absorbing may self-loop)
+                        # mask same-state segments per the zero-diagonal rule
+                        if not degenerate and j != self.hsmm.absorbing:
+                            ai[j] = _LOG_EPS
                         i_star = int(np.argmax(ai))
                         cand = ai[i_star] + logD[j, d - 1] + emis
                     if cand > best_score:

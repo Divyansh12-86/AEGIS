@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Literal
 
-RiskLevel = Literal["None", "Low", "Medium", "High", "Very High"]
+RiskLevel = Literal["None", "Very Low", "Low", "Medium", "High", "Very High"]
 
 class Strategy(BaseModel):
     id: str

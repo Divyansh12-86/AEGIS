@@ -208,7 +208,10 @@ class Trainer:
             seqs = [s for s, n in zip(event_seqs, normal_only) if n]
         if not seqs:
             raise ValueError("no normal-operation sequences for Stage 2")
-        n_events = int(max(int(s.max()) for s in seqs) + 1)
+        # vocabulary is FIXED by the VQ codebook (K codes): the HSMM must
+        # always have K emission symbols so eval-time tokens (possibly rare
+        # or unseen in training runs) stay in-range
+        n_events = self.vq.K
         bw = BaumWelch(
             n_states=cfg.n_states,
             n_events=n_events,

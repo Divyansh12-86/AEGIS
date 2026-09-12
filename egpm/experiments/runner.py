@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -28,9 +28,11 @@ import torch
 from ..data import UnitDataset, SplitBuilder, MIMIILoader
 from ..preprocessing import Preprocessor
 from ..training import Trainer, TrainerConfig
-from ..grammar import ForwardBackward, FirstOrderHMM, FirstOrderHMMFitter
+from ..grammar import HSMM, ForwardBackward, FirstOrderHMMFitter
+from ..grammar.hsmm import DurationHistogram
 from ..anomaly import AnomalyScorer
 from ..baselines import WindowAutoEncoder, TokenMarkovModel
+from ..ablations import ContinuousHSMM, PooledEventModel
 from ..evaluation import auroc
 from ..utils import set_global_seed
 
@@ -243,8 +245,6 @@ def run_core_ablations(
         dataset = MIMIILoader.synthetic_like(
             n_units=16, frames_per_unit=320, anomaly_fraction=0.25, seed=0
         )
-    from ..ablations import ContinuousHSMM, PooledEventModel
-
     seeds = list(range(n_seeds))
     arms = ["A1_continuous_hsmm", "A2_pooled_events",
             "A2b_first_order_hmm", "primary_full_hsmm"]
@@ -322,23 +322,11 @@ def run_core_ablations(
             )
 
         # ---------------- A1: continuous Gaussian HSMM ----------------
-        c_hsmm = ContinuousHSMM.__new__(ContinuousHSMM)
-        c_hsmm.hsmm = None
-        lls = None
-        # construct + fit via fit_em (initializes its own hsmm)
-        holder = ContinuousHSMM(
-            hsmm=trainer.hsmm_placeholder() if hasattr(trainer, "hsmm_placeholder") else None,
-            means=np.zeros((n_states, tcfg.embed_dim)),
-            inv_variances=np.ones((n_states, tcfg.embed_dim)),
-        ) if False else None
-        from ..ablations import ContinuousHSMM as CHS
-        # simple wrapper init
-        a1 = CHS(
-            hsmm=None or _dummy_hsmm(n_states, d_max, seed),
+        a1 = ContinuousHSMM(
+            hsmm=_dummy_hsmm(n_states, d_max, seed),
             means=np.zeros((n_states, tcfg.embed_dim)),
             inv_variances=np.ones((n_states, tcfg.embed_dim)),
         )
-        # proper init through fit_em's internal seeding
         a1.fit_em(emb_train, n_states=n_states, d_max=d_max,
                   max_iter=6, min_iter=2, tol=1e-3, seed=seed)
         a1_norm = [a1.log_likelihood(z) / len(z) for z in emb_norm]
@@ -406,9 +394,7 @@ def run_core_ablations(
 
 
 def _dummy_hsmm(n_states: int, d_max: int, seed: int):
-    """Placeholder for ContinuousHSMM construction before fit_em."""
-    from ..grammar.hsmm import DurationHistogram
-
+    """Placeholder for ContinuousHSMM construction before fit_em replaces it."""
     rng = np.random.default_rng(seed)
     return HSMM(
         n_states=n_states, n_events=2,
@@ -417,6 +403,3 @@ def _dummy_hsmm(n_states: int, d_max: int, seed: int):
         D=DurationHistogram.from_means(np.full(n_states, 2.0), d_max),
         d_max=d_max, seed=seed,
     )
-
-
-from ..grammar import HSMM  # noqa: E402  (kept local to avoid cycles at top)
