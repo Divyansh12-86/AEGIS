@@ -257,6 +257,17 @@ class Preprocessor:
         )
 
     # -- full pipeline ----------------------------------------------------------
+    @staticmethod
+    def _labels_on_grid(
+        labels: Optional[np.ndarray], t_in: np.ndarray, t_grid: np.ndarray
+    ) -> Optional[np.ndarray]:
+        """Resample a per-raw-row label onto the sync grid, causally: the
+        label at grid time t is the label of the last raw row at or before t."""
+        if labels is None:
+            return None
+        idx = np.clip(np.searchsorted(t_in, t_grid, side="right") - 1, 0, len(labels) - 1)
+        return labels[idx]
+
     def process(
         self,
         record: UnitRecord,
@@ -268,34 +279,18 @@ class Preprocessor:
         fit on training units only. If None, data is returned unnormalized
         (test fixtures may assert on raw values); production code must pass it.
         """
-        X_sync, mask_sync, _ = self.synchronize(record)
+        from dataclasses import replace
+
+        X_sync, mask_sync, t_grid = self.synchronize(record)
         X_imp, mask_imp = self.impute(X_sync, mask_sync)
         seq = self.window(
             X_imp,
             mask_imp,
-            rul=record.rul_labels,
-            health=record.health_labels,
-            anomaly=record.anomaly_labels,
+            rul=self._labels_on_grid(record.rul_labels, record.timestamps, t_grid),
+            health=self._labels_on_grid(record.health_labels, record.timestamps, t_grid),
+            anomaly=self._labels_on_grid(record.anomaly_labels, record.timestamps, t_grid),
         )
+        seq = replace(seq, unit_id=record.unit_id)
         if norm_stats is not None:
-            Xn = (seq.X - norm_stats.mean) / norm_stats.std
-            seq = WindowedSequence(
-                unit_id=record.unit_id,
-                X=Xn,
-                mask=seq.mask,
-                window_starts=seq.window_starts,
-                rul_labels=seq.rul_labels,
-                health_labels=seq.health_labels,
-                anomaly_labels=seq.anomaly_labels,
-            )
-        else:
-            seq = WindowedSequence(
-                unit_id=record.unit_id,
-                X=seq.X,
-                mask=seq.mask,
-                window_starts=seq.window_starts,
-                rul_labels=seq.rul_labels,
-                health_labels=seq.health_labels,
-                anomaly_labels=seq.anomaly_labels,
-            )
+            seq = replace(seq, X=(seq.X - norm_stats.mean) / norm_stats.std)
         return seq

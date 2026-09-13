@@ -1,0 +1,49 @@
+{
+  "dataset": "N-CMAPSS DS01 (DS01 005.h5)",
+  "protocol": "1 row/cycle downsample; unit split seed=0 (6/2/2); absorbing-rate calibrated to mean TRAIN-unit lifespan; mid-dwell tau; eval every 5 windows on 2 test units",
+  "config": {
+    "window_length": 4,
+    "embed_dim": 16,
+    "n_conv_blocks": 2,
+    "n_codes": 16,
+    "n_states": 5,
+    "d_max": 10,
+    "stage1_steps": 300,
+    "em_max_iter": 10,
+    "em_restarts": 3,
+    "batch_size": 64
+  },
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "RMSE": {
+    "mean": 43.515864894474326,
+    "std": 2.9190019244336898,
+    "per_seed": [
+      44.92948201827404,
+      39.450169117625656,
+      46.167943547523265
+    ]
+  },
+  "MAE": {
+    "mean": 37.61449424587724,
+    "std": 2.946751669303834,
+    "per_seed": [
+      39.28825533158691,
+      33.47247967067358,
+      40.08274773537122
+    ]
+  },
+  "PHM_score": {
+    "mean": -325.8221216992569,
+    "std": 54.63118395045697,
+    "per_seed": [
+      -377.5789315718048,
+      -250.26702339873316,
+      -349.6204101272327
+    ]
+  },
+  "notes": "Absorbing-column calibration is a train-only single-knob fix for the phase-type identifiability issue (normal-only training cannot pin failure rates)."
+}

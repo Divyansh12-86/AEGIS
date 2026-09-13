@@ -226,10 +226,30 @@ class BaumWelch:
         )
 
     # ------------------------------------------------------------------
+    @staticmethod
+    def _all_transient_reach_absorbing(hsmm: HSMM) -> bool:
+        """RUL-sanity: every transient state must reach the absorbing state
+        with positive probability; otherwise (I-Q)^-1 is (near-)singular and
+        expected RUL diverges (PRD §12)."""
+        A, absb = hsmm.A, hsmm.absorbing
+        transient = [i for i in range(hsmm.M) if i != absb]
+        # reachability via powers of A restricted to transients
+        Q = A[np.ix_(transient, transient)]
+        reach = A[np.ix_(transient, [absb])].ravel().copy()
+        P = Q.copy()
+        for _ in range(hsmm.M):
+            reach = np.maximum(reach, (P @ A[np.ix_(transient, [absb])]).ravel())
+            P = P @ Q
+        return bool((reach > 1e-8).all())
+
+    # ------------------------------------------------------------------
     def fit(
         self, seqs: Sequence[np.ndarray], init: Optional[HSMM] = None, verbose: bool = False
     ) -> tuple:
-        """Fit parameters; returns (hsmm, trace). Restart-aware."""
+        """Fit parameters; returns (hsmm, trace). Restart-aware.
+
+        When ``restarts > 0``, candidates whose transient states cannot
+        reach the absorbing state are skipped (degenerate for RUL, §12)."""
         if len(seqs) == 0:
             raise ValueError("no sequences to fit")
         best = None
@@ -254,6 +274,9 @@ class BaumWelch:
                 hsmm = self._m_step(hsmm, counts)
             if verbose:
                 print(f"restart {r}: ll {trace.log_likelihoods[0]:.3f} -> {trace.log_likelihoods[-1]:.3f}")
+            ok = self._all_transient_reach_absorbing(hsmm)
+            if not ok and self.restarts > 0:
+                continue  # degenerate for RUL: skip this restart
             if best is None or trace.log_likelihoods[-1] > best[1].log_likelihoods[-1]:
                 best = (hsmm, trace)
         return best

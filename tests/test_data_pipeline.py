@@ -237,6 +237,22 @@ class TestCausality:
             assert seq.rul_labels[j] == rul[end_idx]
             assert seq.health_labels[j] == health[end_idx]
 
+    def test_labels_mapped_onto_sync_grid(self):
+        # grid longer than raw rows (timestamps span -> T_out > T): labels
+        # must be resampled onto the grid, not indexed raw (regression: the
+        # tuned N-CMAPSS run crashed with IndexError here)
+        rng = np.random.default_rng(5)
+        T, d, W = 101, 2, 8
+        ts = np.arange(T) * 100.0  # span 10000 -> grid of 10001 rows
+        rul = np.arange(T, dtype=float)[::-1]
+        rec = UnitRecord("u", rng.standard_normal((T, d)), ts, rul_labels=rul)
+        seq = Preprocessor(window_length=W, fs_sync=1.0).process(rec)
+        # labels resampled causally: every window label is a raw RUL value,
+        # RUL is non-increasing over time, and it reaches the last raw value
+        assert all(np.isin(seq.rul_labels, rul))
+        assert (np.diff(seq.rul_labels) <= 0).all()
+        assert seq.rul_labels[-1] <= 1.0  # near end-of-life (tail window may drop the final row)
+
     def test_no_future_leak_into_windows(self):
         # changing signal values AFTER a window's end must not change that window
         rng = np.random.default_rng(4)
