@@ -1,0 +1,48 @@
+{
+  "dataset": "N-CMAPSS DS02 (DS02 006.h5, dev+test units)",
+  "protocol": "same harness as DS01: 1 row/cycle downsample, unit split seed=0, absorbing-rate calibrated to mean train-unit lifespan, mid-dwell tau, eval every 5 windows on test units",
+  "config": {
+    "window_length": 4,
+    "embed_dim": 16,
+    "n_conv_blocks": 2,
+    "n_codes": 16,
+    "n_states": 5,
+    "d_max": 10,
+    "stage1_steps": 300,
+    "em_max_iter": 10,
+    "em_restarts": 3,
+    "batch_size": 64
+  },
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "RMSE": {
+    "mean": 32.673951005253166,
+    "std": 1.874213720942989,
+    "per_seed": [
+      34.39754495259962,
+      30.068326764858988,
+      33.55598129830088
+    ]
+  },
+  "MAE": {
+    "mean": 25.89356962168722,
+    "std": 2.601656052110663,
+    "per_seed": [
+      28.086909941078034,
+      22.23860608500648,
+      27.355192838977146
+    ]
+  },
+  "PHM_score": {
+    "mean": -45.14648003534279,
+    "std": 48.46441089671826,
+    "per_seed": [
+      -85.92108632189836,
+      22.95111861091008,
+      -72.46947239504009
+    ]
+  }
+}
