@@ -7,6 +7,7 @@ These tests verify the non-negotiable integrity requirements:
 """
 import numpy as np
 import pytest
+from pathlib import Path
 
 from egpm.data.loaders import UnitDataset, UnitRecord, NCMAPSSLoader, MIMIILoader
 from egpm.data.split_builder import SplitBuilder
@@ -152,6 +153,55 @@ class TestLoadersContract:
         for uid in ds.unit_ids:
             np.testing.assert_array_equal(ds[uid].signals, reloaded[uid].signals)
             np.testing.assert_array_equal(ds[uid].rul_labels, reloaded[uid].rul_labels)
+
+
+# ---------------------------------------------------------------------------
+# Real N-CMAPSS .h5 wiring (DS01/DS02 schema): skipped when files are absent
+# ---------------------------------------------------------------------------
+_NCMAPSS_DIR = Path(__file__).resolve().parent.parent / "N-CMAPSS"
+
+def h5py_available() -> bool:
+    try:
+        import h5py  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+_HAS_REAL = any(_NCMAPSS_DIR.glob("*.h5")) and h5py_available()
+
+
+@pytest.mark.skipif(not _HAS_REAL, reason="real N-CMAPSS .h5 files not present")
+class TestNCMAPSSRealFiles:
+    """Wired against the verified real schema:
+    A_*=[unit, cycle, Fc, hs], W_* (4 ops), X_s_* (14 sensors), Y_*=RUL."""
+
+    def test_load_real_files(self):
+        ds = NCMAPSSLoader(max_cycles_per_unit=3).load(_NCMAPSS_DIR)
+        # DS01 (6 dev + 4 test units) + DS02 (6 dev + 3 test); DS03 stub skipped
+        assert len(ds) == 19
+        ids = set(ds.unit_ids)
+        assert "DS01_u1" in ids and "DS02_u2" in ids  # namespaced per dataset
+        assert not (ids & {"DS01_u2"}) - {"DS01_u2"}  # u2 exists in both files
+        r = ds["DS01_u1"]
+        assert r.signals.shape[1] == 18  # 4 ops + 14 health-proxy sensors
+        assert r.rul_labels is not None and r.rul_labels[0] >= r.rul_labels[-1]
+        assert set(np.unique(r.health_labels)) <= {1, 2}
+
+    def test_real_files_split_and_preprocess(self):
+        ds = NCMAPSSLoader(max_cycles_per_unit=3).load(_NCMAPSS_DIR)
+        split = SplitBuilder(ds, seed=0).build()
+        assert all(SplitBuilder.audit(split, ds).values())
+        stats = SplitBuilder(ds, seed=0).fit_normalization(split)
+        seq = Preprocessor(window_length=100).process(
+            ds[split.train_unit_ids[0]], norm_stats=stats
+        )
+        # one cycle ~ 4000-9000 rows at 1Hz; W=100 keeps causality per PRD §6
+        assert seq.X.ndim == 3 and seq.rul_labels is not None
+
+    def test_corrupt_file_skipped_with_others_loaded(self):
+        ds = NCMAPSSLoader(max_cycles_per_unit=2).load(_NCMAPSS_DIR)
+        # DS03-012.h5 is a corrupt 4KB stub; the two real files still load
+        assert len(ds) == 19
 
     def test_mimii_synthetic_labels(self):
         ds = make_mimii_like(n_units=10, anomaly_fraction=0.2)

@@ -6,6 +6,7 @@ from training units (PRD §6).
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
@@ -140,42 +141,56 @@ class UnitSplit:
 class NCMAPSSLoader:
     """Loader for N-CMAPSS (NASA Modular Aero-Propulsion System Simulation).
 
-    The public dataset (DS01: 6 train units, DS02–DS08a additional units) is
-    distributed as .mat (MATLAB v7.3 / HDF5) files. Because the dataset is not
-    bundled with the repo, this loader accepts either:
+    The real distribution ships ``.h5`` files (also readable when renamed
+    ``.mat`` — MATLAB v7.3/HDF5) with the schema verified against
+    ``N-CMAPSS DS01 005.h5`` / ``DS02 006.h5``:
 
-    1. A directory of ``*.mat`` files (one per unit) each containing the
-       standard N-CMAPSS variable groups: ``A``, ``W``, ``X_s``, ``X_v``
-       (sensor/health/aux matrices, rows = cycles) and ``Y`` (unit + cycle).
-    2. A pre-extracted ``.npz`` archive with per-unit arrays (produced by
-       :meth:`NCMAPSSLoader.to_npz`), so CI can run without MATLAB files.
+    * ``A_dev``/``A_test`` — [T, 4]: unit, cycle, Fc, hs (health state)
+    * ``W_dev``/``W_test`` — [T, 4]: operational settings (alt, Mach, TRA, T2)
+    * ``X_s_dev``/``X_s_test`` — [T, 14]: health-proxy sensors
+    * ``Y_dev``/``Y_test`` — [T, 1]: ground-truth RUL in cycles (0..N-1,
+      constant within a cycle, verified equal to max_cycle - cycle)
 
-    Only ``X_s`` (health proxies) and ``W`` (operational settings) are used as
-    signals by default; ``aux_health`` rows are decoded into health-state
-    labels 1..6 when present.
+    Multiple units live in one file (contiguous row blocks, unit ids disjoint
+    across dev/test); the same unit number appears in different dataset files,
+    so unit_ids are namespaced by dataset (e.g. ``DS01_u2`` vs ``DS02_u2``).
+    ``hs`` is stored 1-based as health_labels. A pre-extracted ``.npz``
+    archive (see :meth:`NCMAPSSLoader.to_npz`) is also accepted.
     """
 
-    #: channels of ``Y``: (unit number, time cycle)
-    _Y_COLS = ("unit", "cycle")
-    #: N-CMAPSS auxiliary health code: 3 bits
-    _HEALTH_BITS = 3
+    #: channels of ``A``: (unit number, cycle, Fc, hs)
+    _A_COLS = 4
 
-    def __init__(self, use_health_proxies: bool = True):
+    def __init__(
+        self,
+        use_health_proxies: bool = True,
+        max_cycles_per_unit: Optional[int] = None,
+    ):
         self.use_health_proxies = use_health_proxies
+        self.max_cycles_per_unit = max_cycles_per_unit
 
     # -- public API ----------------------------------------------------------
     def load(self, path: str | Path) -> UnitDataset:
-        """Load all units under ``path`` (directory of .mat/.npz, or single file)."""
+        """Load all units under ``path`` (directory of .h5/.mat/.npz, or single file).
+
+        Unreadable files in a directory (corrupt/partial downloads) are
+        skipped with a warning; at least one unit must load overall.
+        """
         path = Path(path)
         if path.is_dir():
             files = sorted(
-                p for p in path.iterdir() if p.suffix in {".mat", ".npz"}
+                p for p in path.iterdir() if p.suffix in {".h5", ".mat", ".npz"}
             )
             if not files:
-                raise FileNotFoundError(f"no .mat/.npz files under {path}")
+                raise FileNotFoundError(f"no .h5/.mat/.npz files under {path}")
             dataset = UnitDataset()
             for f in files:
-                self._load_one_into(f, dataset)
+                try:
+                    self._load_one_into(f, dataset)
+                except OSError as e:  # corrupt file: skip, keep loading the rest
+                    print(f"[NCMAPSSLoader] skipping unreadable {f.name}: {e}")
+            if len(dataset) == 0:
+                raise ValueError(f"no readable dataset files under {path}")
             return dataset
         if path.is_file():
             dataset = UnitDataset()
@@ -188,47 +203,56 @@ class NCMAPSSLoader:
         if file.suffix == ".npz":
             self._load_npz(file, dataset)
         else:
-            self._load_mat(file, dataset)
+            self._load_h5(file, dataset)
 
-    def _load_mat(self, file: Path, dataset: UnitDataset) -> None:
+    @staticmethod
+    def _dataset_prefix(file: Path) -> str:
+        """Namespace units by dataset file (DS01_u2 vs DS02_u2)."""
+        m = re.search(r"(DS\d+[a-z]?)", file.stem, re.IGNORECASE)
+        if m:
+            return m.group(1).upper()
+        return re.sub(r"[^A-Za-z0-9]+", "_", file.stem).strip("_") or "ds"
+
+    def _load_h5(self, file: Path, dataset: UnitDataset) -> None:
         try:
-            import h5py  # N-CMAPSS .mat files are MATLAB v7.3 (HDF5)
+            import h5py  # N-CMAPSS files are MATLAB v7.3 (HDF5)
         except ImportError as e:  # pragma: no cover - optional dep
             raise ImportError(
-                "h5py is required to read N-CMAPSS .mat files: pip install h5py"
+                "h5py is required to read N-CMAPSS .h5/.mat files: pip install h5py"
             ) from e
+        prefix = self._dataset_prefix(file)
         with h5py.File(file, "r") as f:
-            Y = np.array(f["Y"]).T  # [T, 2]: unit, cycle
-            W = np.array(f["W"]).T  # [T, n_oper]
-            if self.use_health_proxies and "X_s" in f:
-                Xs = np.array(f["X_s"]).T  # [T, n_health]
-            else:
-                Xs = np.empty((Y.shape[0], 0))
-            if "aux_health" in f:
-                bits = np.array(f["aux_health"]).T  # [T, 3]
-                health = bits @ (2 ** np.arange(self._HEALTH_BITS))
-                health = np.clip(health, 1, 6)
-            else:
-                health = None
-            signals = np.concatenate(
-                [c for c in (W, Xs) if c.size], axis=1
-            )
-            unit_ids = np.unique(Y[:, 0]).astype(int).tolist()
-            if len(unit_ids) != 1:
-                raise ValueError(
-                    f"{file.name}: expected exactly one unit per .mat file, "
-                    f"found {unit_ids}"
-                )
-            cycles = Y[:, 1]
-            dataset.add(
-                UnitRecord(
-                    unit_id=f"ncmapss_u{unit_ids[0]}",
-                    signals=signals.astype(np.float64),
-                    timestamps=cycles.astype(np.float64),
-                    health_labels=health,
-                    rul_labels=self._compute_rul(cycles),
-                )
-            )
+            for part in ("dev", "test"):
+                A = np.array(f[f"A_{part}"])  # [T, 4]: unit, cycle, Fc, hs
+                Y = np.array(f[f"Y_{part}"]).ravel()  # [T]: ground-truth RUL
+                W = np.array(f[f"W_{part}"])  # [T, 4]
+                if self.use_health_proxies and f"X_s_{part}" in f:
+                    Xs = np.array(f[f"X_s_{part}"])  # [T, n_sensors]
+                    signals_all = np.concatenate([W, Xs], axis=1)
+                else:
+                    signals_all = W
+                for unit in np.unique(A[:, 0]):
+                    rows = A[:, 0] == unit  # units are contiguous row blocks
+                    signals = signals_all[rows].astype(np.float64)
+                    rul = Y[rows].astype(np.float64)
+                    hs = A[rows, 3].astype(np.int64) + 1  # 1-based health state
+                    if self.max_cycles_per_unit is not None:
+                        cycles = A[rows, 1]
+                        unique_cycles = np.unique(cycles)
+                        cutoff = unique_cycles[
+                            min(self.max_cycles_per_unit, len(unique_cycles)) - 1
+                        ]
+                        keep = cycles <= cutoff
+                        signals, rul, hs = signals[keep], rul[keep], hs[keep]
+                    dataset.add(
+                        UnitRecord(
+                            unit_id=f"{prefix}_u{int(unit)}",
+                            signals=signals,
+                            timestamps=np.arange(len(signals), dtype=np.float64),
+                            health_labels=hs,
+                            rul_labels=rul,
+                        )
+                    )
 
     def _load_npz(self, file: Path, dataset: UnitDataset) -> None:
         with np.load(file, allow_pickle=False) as z:
@@ -255,11 +279,6 @@ class NCMAPSSLoader:
                         anomaly_labels=anomaly,
                     )
                 )
-
-    def _compute_rul(self, cycles: np.ndarray) -> np.ndarray:
-        """Piecewise-linear RUL label: RUL = (max_cycle - cycle) per unit."""
-        last = cycles.max()
-        return (last - cycles).astype(np.float64)
 
     # -- export for CI / tests -------------------------------------------------
     @staticmethod

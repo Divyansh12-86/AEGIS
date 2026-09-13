@@ -61,8 +61,7 @@ egpm/
 │   └── mimii.yaml
 │
 ├── data/                        # dataset loaders, unit-level split logic
-│   ├── ncmapss_loader.py
-│   ├── mimii_loader.py
+│   ├── loaders.py               # UnitRecord/UnitDataset, NCMAPSSLoader, MIMIILoader
 │   └── split_builder.py
 │
 ├── preprocessing/                # sync, impute, window, normalize (deterministic)
@@ -123,10 +122,11 @@ egpm/
     ├── test_first_order_hmm.py          # A2b: HMM-vs-HSMM cross-validation, dwell value
     ├── test_baselines.py                # M9: CNN/LSTM/SAX/CBM/TokenMarkov contracts
     ├── test_ablations.py               # A1 continuous HSMM, A2 pooled events
-    └── test_experiments.py              # Deliverable-E + ablation harness reports
+    ├── test_experiments.py              # Deliverable-E + ablation harness reports
+    └── test_interpretability.py         # §24 suite: coherence/stability/temporal/faithfulness
 ```
 
-**Implementation status:** the EGPM MVP (PRD §31 milestones M1–M10) is implemented and tested — 190 tests passing. The `Aegis_prd (1).md` file is the authoritative PRD. Remaining for Definition of Done (§32): wiring the real N-CMAPSS/MIMII datasets through the loaders, running the §24 interpretability validation suite, and full multi-seed experiment reporting.
+**Implementation status:** the EGPM MVP (PRD §31 milestones M1–M10) is implemented and tested — 218 tests passing. The `Aegis_prd (1).md` file is the authoritative PRD. N-CMAPSS is **wired**: `NCMAPSSLoader` reads the real DS01/DS02 `.h5` schema (verified: `A_*=[unit, cycle, Fc, hs]`, `W_*` ops, `X_s_*` sensors, `Y_*` ground-truth RUL) and a full pipeline smoke run (load → split → preprocess → VQ → HSMM EM → heads → schema-valid explanation) passes on the real files. Remaining for Definition of Done (§32): wiring MIMII wavs, hyperparameter tuning on real data, the §24 interpretability run on real datasets, and full multi-seed experiment reporting.
 
 ## Datasets
 
@@ -191,7 +191,7 @@ All 10 first tasks (§31D) and milestones M1–M10 are **implemented and tested*
 | 4 | VQ codebook with corrected straight-through estimator + EMA updates + perplexity monitor | ✅ |
 | 5 | Explicit-duration HSMM forward-backward + segmental Viterbi, validated against brute-force likelihood | ✅ |
 | 6 | Baum-Welch (EM) fitting for the HSMM | ✅ |
-| 7 | Corrected phase-type RUL formula with synthetic closed-form unit test |
+| 7 | Corrected phase-type RUL formula with synthetic closed-form unit test | ✅ |
 | 8 | Anomaly scorer + validation-only threshold selection | ✅ |
 | 9 | Explanation-object assembler + schema validator | ✅ |
 | 10 | Two core baselines (CNN-RUL, OmniAnomaly) under identical data contracts | ✅ (CNN-RUL + continuous-AE anomaly baseline; OmniAnomaly proper is Phase-2) |
@@ -204,18 +204,18 @@ All 10 first tasks (§31D) and milestones M1–M10 are **implemented and tested*
 | M2 | Encoder (autoencoder sanity check) | ✅ |
 | M3 | VQ event discovery (perplexity stable, no collapse) | ✅ |
 | M4 | HSMM (EM converges; forward-algorithm test passes) | ✅ |
-| M5 | RUL head (synthetic closed-form test passes) | ✅ (real N-CMAPSS numbers pending dataset) |
+| M5 | RUL head (synthetic closed-form test passes) | ✅ (wired on real N-CMAPSS; tuned numbers pending) |
 | M6 | Anomaly head (validation-only threshold; AUROC produced) | ✅ (real MIMII numbers pending dataset) |
-| M7 | Fault + health heads | ✅ (heads + tests; N-CMAPSS run pending dataset) |
+| M7 | Fault + health heads | ✅ (heads + tests; runs on real N-CMAPSS data, tuned numbers pending) |
 | M8 | Explanation object (schema-valid output) | ✅ |
 | M9 | Core baselines (all five under identical contracts) | ✅ |
-| M10 | Essential ablations (A1, A2, A2b, A4 with ≥3 seeds) | ✅ harness + tests (real-data runs pending datasets) |
-| M11 | Evaluation + write-up | ⏳ requires real datasets |
+| M10 | Essential ablations (A1, A2, A2b, A4 with ≥3 seeds) | ✅ harness + tests (tuned real-data runs pending) |
+| M11 | Evaluation + write-up | ⏳ N-CMAPSS wired; MIMII + multi-seed reporting pending |
 
 **Definition of done** has three separate bars, all required:
-1. **Engineering completion** — ✅ full pipeline runs end-to-end, all 190 tests (mathematical invariants included) pass, runs are reproducible from seeds+config. *Remaining: wire the real N-CMAPSS/MIMII files.*
-2. **Research completion** — ⏳ the harness produces multi-seed ablation reports; real-data runs with confidence intervals pending datasets.
-3. **Experimental completion** — ⏳ §24's interpretability experiments (coherence, stability, cross-unit consistency, temporal validity, faithfulness) are the next build phase.
+1. **Engineering completion** — ✅ full pipeline runs end-to-end, all 218 tests (mathematical invariants included) pass, runs are reproducible from seeds+config. *Remaining: wire real MIMII wavs (N-CMAPSS is wired and smoke-tested on the real files).*
+2. **Research completion** — ⏳ the harness produces multi-seed ablation reports; N-CMAPSS is wired end-to-end, tuned real-data runs with confidence intervals pending.
+3. **Experimental completion** — ✅ the §24 interpretability suite is **implemented and run**: `egpm.interpretability.run_interpretability_suite()` reports all six metrics (coherence, stability, cross-unit consistency, temporal validity, faithfulness, rank correlation) with pass-signal tests on constructed ground truth. *Remaining: run on real datasets.*
 
 ## Testing
 
@@ -223,13 +223,9 @@ All 10 first tasks (§31D) and milestones M1–M10 are **implemented and tested*
 pytest tests/ -v
 ```
 
-190 tests cover: data-contract shapes per module, unit-split leakage audits, preprocessing causality, VQ straight-through correctness, HSMM forward likelihood vs brute-force enumeration, forward-backward α·β = P(v) at every t, Viterbi-likelihood bound, EM monotonicity, RUL formula vs closed-form synthetic cases, Monte-Carlo RUL agreement, validation-only thresholding, §18 explanation schema, baseline contracts, A1/A2/A2b ablation machinery, and a full schema-valid end-to-end run.
+218 tests cover: data-contract shapes per module, unit-split leakage audits, preprocessing causality, VQ straight-through correctness, HSMM forward likelihood vs brute-force enumeration, forward-backward α·β = P(v) at every t, Viterbi-likelihood bound, EM monotonicity, RUL formula vs closed-form synthetic cases, Monte-Carlo RUL agreement, validation-only thresholding, §18 explanation schema, baseline contracts, A1/A2/A2b ablation machinery, a full schema-valid end-to-end run, and the **real N-CMAPSS `.h5` loader** (DS01/DS02 schema, unit namespacing, corrupt-file skip; auto-skipped when the data files are absent).
 
 ## Scope Boundaries
-
-**In scope (MVP):** flat HSMM (no PCFG layer), VQ-VAE event discovery (not Gumbel-softmax), two datasets, four prediction tasks, five core baselines, four essential ablations (A1, A2, A2b, A4).
-
-**Explicitly out of scope:** real PLC/production deployment, multi-asset fleet optimization, autonomous control actions, any LLM as the primary interpretability mechanism, cross-fleet transfer, edge-deployment optimization.
 
 **In scope (MVP):** flat HSMM (no PCFG layer), VQ-VAE event discovery (not Gumbel-softmax), two datasets (N-CMAPSS, MIMII), four prediction tasks (RUL, anomaly, fault, health), five core baselines, four essential ablations (A1 — no event bottleneck, A2 — no HSMM, A2b — HSMM vs. plain Markov chain, A4 — continuous skip connection).
 

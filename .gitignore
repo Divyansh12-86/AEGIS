@@ -48,6 +48,8 @@ htmlcov/
 data/audit_log.jsonl
 *.db
 *.sqlite3
+N-CMAPSS/*.h5
+N-CMAPSS/*.mat
 
 # --- Jupyter ---
 .ipynb_checkpoints/
