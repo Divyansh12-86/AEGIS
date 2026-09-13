@@ -49,7 +49,7 @@ from ..utils import set_global_seed
 
 
 ARMS = ["A_continuous", "B_continuous_hmm", "C_vq_markov",
-        "D_vq_hmm", "E_vq_hsmm", "F_full_egpm"]
+        "D_vq_hmm", "E_vq_hsmm", "E2_hsmm_native", "F_full_egpm"]
 
 
 @dataclass
@@ -199,7 +199,7 @@ def run_ablation_experiment(
         e_train, e_test = emb(train), emb(test)
 
         # ---- per-arm posteriors: train features -> fit ridge -> test preds --
-        def fit_and_eval(feat_train, feat_test, arm, extra=None):
+        def fit_and_eval(feat_train, feat_test, arm, extra=None, t_arm=None):
             w = _ridge_fit(np.concatenate(feat_train), y_tr)
             preds, trues, det, lag = [], [], [], []
             for i, s in enumerate(test):
@@ -214,11 +214,15 @@ def run_ablation_experiment(
             if det:
                 per_arm_seed[arm].setdefault("onset_detection", []).append(float(np.mean(det)))
                 per_arm_seed[arm].setdefault("onset_lag", []).append(float(np.nanmean(lag)))
+            if t_arm is not None:
+                per_arm_seed[arm].setdefault("runtime_s", []).append(time.time() - t_arm)
 
         # A: continuous embedding, no temporal model
-        fit_and_eval(e_train, e_test, "A_continuous")
+        t_arm = time.time()
+        fit_and_eval(e_train, e_test, "A_continuous", t_arm=t_arm)
 
         # B: continuous embedding + first-order HMM posterior
+        t_arm = time.time()
         # (Gaussian-emission HMM = ContinuousHSMM at d_max=1: geometric dwell)
         from ..ablations import ContinuousHSMM
         rng = np.random.default_rng(seed)
@@ -231,9 +235,10 @@ def run_ablation_experiment(
                        max_iter=em_max_iter, min_iter=2, tol=1e-3, seed=seed)
         b_train = [b_model.posterior(z) for z in e_train]
         b_test = [b_model.posterior(z) for z in e_test]
-        fit_and_eval(b_train, b_test, "B_continuous_hmm")
+        fit_and_eval(b_train, b_test, "B_continuous_hmm", t_arm=t_arm)
 
         # C: VQ tokens + first-order token Markov posterior features
+        t_arm = time.time()
         from ..baselines import TokenMarkovModel
         mm = TokenMarkovModel(n_events=n_codes, smoothing=0.5).fit(ev_train)
 
@@ -244,17 +249,19 @@ def run_ablation_experiment(
 
         c_train = [run_feats_markov(v) for v in ev_train]
         c_test = [run_feats_markov(v) for v in ev_test]
-        fit_and_eval(c_train, c_test, "C_vq_markov")
+        fit_and_eval(c_train, c_test, "C_vq_markov", t_arm=t_arm)
 
         # D: VQ tokens + first-order HMM (geometric dwell via diagonal)
+        t_arm = time.time()
         d_hmm, _ = FirstOrderHMMFitter(max_iter=10, seed=seed).fit(
             ev_train, n_states=n_states, n_events=n_codes
         )
         d_train = [d_hmm.posterior(v) for v in ev_train]
         d_test = [d_hmm.posterior(v) for v in ev_test]
-        fit_and_eval(d_train, d_test, "D_vq_hmm")
+        fit_and_eval(d_train, d_test, "D_vq_hmm", t_arm=t_arm)
 
         # E: VQ + HSMM (uncalibrated) — posterior + expected-dwell features
+        t_arm = time.time()
         trainer.train_stage2(ev_train)
         hsmm_E = trainer.hsmm
 
@@ -281,23 +288,17 @@ def run_ablation_experiment(
                 return tv["detection_rate"], tv["mean_abs_lag"]
             return f
 
-        fit_and_eval(e_feat_train, e_feat_test, "E_vq_hsmm", extra=onset_extra_E(hsmm_E))
-
-        # F: E + train-only absorbing calibration + phase-type RUL readout
-        import copy
-        hsmm_F = copy.deepcopy(hsmm_E)
-        target = float(np.mean([dataset[u].rul_labels.max() for u in split.train_unit_ids]))
-        _calibrate_absorb(hsmm_F, target)
-        rul_F = PhaseTypeRUL(hsmm_F)
+        fit_and_eval(e_feat_train, e_feat_test, "E_vq_hsmm", extra=onset_extra_E(hsmm_E), t_arm=t_arm)
 
         def rul_feats(h, runs):
+            # native phase-type readout: posterior-weighted expected RUL
+            # with mid-dwell tau (PRD §12 formula, belief-weighted)
+            pt = PhaseTypeRUL(h)
             out = []
             for v in runs:
                 r = ForwardBackward(h).run(v)
-                # posterior-weighted phase-type RUL (mid-dwell tau), the
-                # model-native readout — plus the shared posterior features
                 prul = np.array([
-                    PhaseTypeRUL(h).expected_rul_from_belief(
+                    pt.expected_rul_from_belief(
                         r.state_posterior[t],
                         tau_elapsed=r.expected_dwell[t].astype(int),
                     ) for t in range(len(v))
@@ -305,9 +306,25 @@ def run_ablation_experiment(
                 out.append(prul[:, None])
             return out
 
+        # E2: VQ + HSMM + native phase-type RUL, NO absorbing calibration
+        t_arm = time.time()
+        # (isolates readout: E1 vs E2; calibration: E2 vs F=E3)
+        e2_train = rul_feats(hsmm_E, ev_train)
+        e2_test = rul_feats(hsmm_E, ev_test)
+        fit_and_eval(e2_train, e2_test, "E2_hsmm_native", extra=onset_extra_E(hsmm_E), t_arm=t_arm)
+
+        # F: E2 + train-only absorbing calibration (isolates the knob)
+        t_arm = time.time()
+
+        # F: E2 + train-only absorbing calibration (isolates the knob)
+        import copy
+        hsmm_F = copy.deepcopy(hsmm_E)
+        target = float(np.mean([dataset[u].rul_labels.max() for u in split.train_unit_ids]))
+        _calibrate_absorb(hsmm_F, target)
+
         f_train = rul_feats(hsmm_F, ev_train)
         f_test = rul_feats(hsmm_F, ev_test)
-        fit_and_eval(f_train, f_test, "F_full_egpm", extra=onset_extra_E(hsmm_F))
+        fit_and_eval(f_train, f_test, "F_full_egpm", extra=onset_extra_E(hsmm_F), t_arm=t_arm)
 
         # event stability: this seed's train tokenization vs next seed's
         # (same units, different encoder init) — matched usage overlap
@@ -316,7 +333,7 @@ def run_ablation_experiment(
     # stability between consecutive seeds (metric consumes run lists)
     for s in range(n_seeds - 1):
         st = event_stability(ev_by_seed[s], ev_by_seed[s + 1], n_codes=n_codes)
-        for arm in ("C_vq_markov", "D_vq_hmm", "E_vq_hsmm", "F_full_egpm"):
+        for arm in ("C_vq_markov", "D_vq_hmm", "E_vq_hsmm", "E2_hsmm_native", "F_full_egpm"):
             per_arm_seed[arm].setdefault("stability", []).append(
                 st["matched_usage_overlap"]
             )
@@ -329,13 +346,40 @@ def run_ablation_experiment(
             k: {"mean": float(np.mean(v)), "std": float(np.std(v)), "per_seed": v}
             for k, v in d.items()
         }
+    # E1/E2/E3 decomposition: readout effect (E1 vs E2), calibration effect
+    # (E2 vs E3=F). Both effects computed per seed, paired.
+    decomp = {}
+    for metric in ("rmse", "mae"):
+        e1 = results["E_vq_hsmm"].get(metric, {}).get("per_seed", [])
+        e2 = results["E2_hsmm_native"].get(metric, {}).get("per_seed", [])
+        e3 = results["F_full_egpm"].get(metric, {}).get("per_seed", [])
+        if e1 and e2 and e3 and len(e1) == len(e2) == len(e3):
+            decomp[f"readout_effect_{metric}"] = {  # E1 - E2 (>0: native readout worse)
+                "per_seed": [a - b for a, b in zip(e1, e2)],
+                "mean": float(np.mean([a - b for a, b in zip(e1, e2)])),
+            }
+            decomp[f"calibration_effect_{metric}"] = {  # E2 - E3 (>0: calibration hurts)
+                "per_seed": [b - c for b, c in zip(e2, e3)],
+                "mean": float(np.mean([b - c for b, c in zip(e2, e3)])),
+            }
     report = {
-        "experiment": "controlled_ablation_A_F", "config": cfg,
+        "experiment": "controlled_ablation_A_F",
+        "config": cfg,
+        "n_independent_test_units": len(split.test_unit_ids),
+        "n_train_units": len(split.train_unit_ids),
+        "n_val_units": len(split.val_unit_ids),
+        "statistical_limitations": [
+            f"only {len(split.test_unit_ids)} independent test units — no "
+            "confidence intervals reported; per-seed numbers reflect encoder/EM "
+            "variance, NOT independent test data (seeds share the same test units)",
+        ],
         "results": results,
+        "E_decomposition": decomp,
         "notes": "If a simpler arm matches/beats F, that is the finding. "
-                 "E vs F isolates the train-only absorbing calibration. "
-                 "F's readout is the model-native phase-type RUL; A-E use "
-                 "the shared ridge head over each arm's representation.",
+                 "E1 vs E2 = readout effect; E2 vs F = absorbing-calibration "
+                 "effect (F's readout is identical to E2's). "
+                 "A-E use the shared ridge head over each arm's representation; "
+                 "E2/F use the model-native phase-type RUL.",
     }
     return report
 
@@ -361,8 +405,17 @@ if __name__ == "__main__":
     out = f"ablation_report_{path.split()[-1].split('.')[0]}.json"
     with open(out, "w") as f:
         json.dump(rep, f, indent=2)
-    print(f"-> {out}")
+    print(f"-> {out}  |  test units: {rep['n_independent_test_units']}")
+    print(f"{'arm':20s} {'RMSE':>8s} {'MAE':>7s} {'onset%':>7s} {'lag':>5s} {'stab':>5s} {'sec':>5s}")
     for arm, d in rep["results"].items():
-        rmse = d.get("rmse", {})
-        print(f"{arm:20s} RMSE {rmse.get('mean', float('nan')):8.1f} "
-              f"+- {rmse.get('std', 0):5.1f}")
+        g = lambda k: d.get(k, {}).get("mean", float("nan"))
+        print(f"{arm:20s} {g('rmse'):8.1f} {g('mae'):7.1f} "
+              f"{100 * g('onset_detection') if g('onset_detection') == g('onset_detection') else float('nan'):7.1f} "
+              f"{g('onset_lag'):5.1f} {g('stability'):5.2f} {g('runtime_s'):5.1f}")
+    print("\nper-seed RMSE:")
+    for arm, d in rep["results"].items():
+        ps = d.get("rmse", {}).get("per_seed", [])
+        print(f"  {arm:20s} {[round(x, 1) for x in ps]}")
+    print("\nE-decomposition (positive = second stage worse):")
+    for k, v in rep["E_decomposition"].items():
+        print(f"  {k:28s} mean {v['mean']:+.1f}  per_seed {[round(x, 1) for x in v['per_seed']]}")

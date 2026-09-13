@@ -12,6 +12,12 @@
     "em_restarts": 3,
     "protocol": "shared ridge head, unit-level splits (seed-fixed), train-only normalization, identical windows; F = E + train-only absorbing calibration"
   },
+  "n_independent_test_units": 2,
+  "n_train_units": 5,
+  "n_val_units": 2,
+  "statistical_limitations": [
+    "only 2 independent test units \u2014 no confidence intervals reported; per-seed numbers reflect encoder/EM variance, NOT independent test data (seeds share the same test units)"
+  ],
   "results": {
     "A_continuous": {
       "rmse": {
@@ -30,6 +36,15 @@
           21.33049705765289,
           21.183854159700353,
           21.33898938284745
+        ]
+      },
+      "runtime_s": {
+        "mean": 0.00011793772379557292,
+        "std": 1.9884103144322716e-06,
+        "per_seed": [
+          0.00011968612670898438,
+          0.00011515617370605469,
+          0.00011897087097167969
         ]
       }
     },
@@ -51,6 +66,15 @@
           21.912440030316446,
           20.297465669643884
         ]
+      },
+      "runtime_s": {
+        "mean": 0.39008458455403644,
+        "std": 0.0028917266111285686,
+        "per_seed": [
+          0.3860189914703369,
+          0.3917348384857178,
+          0.3924999237060547
+        ]
       }
     },
     "C_vq_markov": {
@@ -70,6 +94,15 @@
           21.401840714934316,
           21.2263196519248,
           21.735445679179527
+        ]
+      },
+      "runtime_s": {
+        "mean": 8.749961853027344e-05,
+        "std": 1.0321073924023324e-05,
+        "per_seed": [
+          7.915496826171875e-05,
+          0.00010204315185546875,
+          8.130073547363281e-05
         ]
       },
       "stability": {
@@ -98,6 +131,15 @@
           20.54718549411083,
           21.52068746091628,
           20.73712100022502
+        ]
+      },
+      "runtime_s": {
+        "mean": 0.07784326871236165,
+        "std": 0.001002005135888566,
+        "per_seed": [
+          0.07711386680603027,
+          0.07715582847595215,
+          0.07926011085510254
         ]
       },
       "stability": {
@@ -146,6 +188,70 @@
           5.0
         ]
       },
+      "runtime_s": {
+        "mean": 2.2420647939046225,
+        "std": 0.0025855375431981125,
+        "per_seed": [
+          2.240086078643799,
+          2.240391254425049,
+          2.2457170486450195
+        ]
+      },
+      "stability": {
+        "mean": 0.8176470588235294,
+        "std": 0.01764705882352946,
+        "per_seed": [
+          0.8352941176470589,
+          0.7999999999999999
+        ]
+      }
+    },
+    "E2_hsmm_native": {
+      "rmse": {
+        "mean": 19.981987578446855,
+        "std": 1.3071769363777443,
+        "per_seed": [
+          19.831827197956667,
+          21.652735719612547,
+          18.46139981777135
+        ]
+      },
+      "mae": {
+        "mean": 16.372014631989114,
+        "std": 0.5638061879647568,
+        "per_seed": [
+          17.119367162783146,
+          16.238992210147188,
+          15.757684523037
+        ]
+      },
+      "onset_detection": {
+        "mean": 0.8333333333333334,
+        "std": 0.23570226039551584,
+        "per_seed": [
+          1.0,
+          1.0,
+          0.5
+        ]
+      },
+      "onset_lag": {
+        "mean": 2.0,
+        "std": 2.160246899469287,
+        "per_seed": [
+          1.0,
+          0.0,
+          5.0
+        ]
+      },
+      "runtime_s": {
+        "mean": 0.04879132906595866,
+        "std": 0.0005091759572755999,
+        "per_seed": [
+          0.04903292655944824,
+          0.04808306694030762,
+          0.04925799369812012
+        ]
+      },
       "stability": {
         "mean": 0.8176470588235294,
         "std": 0.01764705882352946,
@@ -192,6 +298,15 @@
           3.0
         ]
       },
+      "runtime_s": {
+        "mean": 0.049102067947387695,
+        "std": 0.00045855403426464577,
+        "per_seed": [
+          0.04909706115722656,
+          0.04854297637939453,
+          0.04966616630554199
+        ]
+      },
       "stability": {
         "mean": 0.8176470588235294,
         "std": 0.01764705882352946,
@@ -202,5 +317,39 @@
       }
     }
   },
-  "notes": "If a simpler arm matches/beats F, that is the finding. E vs F isolates the train-only absorbing calibration. F's readout is the model-native phase-type RUL; A-E use the shared ridge head over each arm's representation."
+  "E_decomposition": {
+    "readout_effect_rmse": {
+      "per_seed": [
+        -1.8063302704385364,
+        -0.8994722069889605,
+        -1.8103860177538529
+      ],
+      "mean": -1.50539616506045
+    },
+    "calibration_effect_rmse": {
+      "per_seed": [
+        -3.2273515635729986,
+        -4.450982365456817,
+        -5.705654417491019
+      ],
+      "mean": -4.461329448840278
+    },
+    "readout_effect_mae": {
+      "per_seed": [
+        -1.8068205546456149,
+        -0.7117117253100176,
+        -1.777097456450214
+      ],
+      "mean": -1.4318765788019487
+    },
+    "calibration_effect_mae": {
+      "per_seed": [
+        -2.6612989490233474,
+        -3.692681817467882,
+        -5.203737814658151
+      ],
+      "mean": -3.852572860383127
+    }
+  },
+  "notes": "If a simpler arm matches/beats F, that is the finding. E1 vs E2 = readout effect; E2 vs F = absorbing-calibration effect (F's readout is identical to E2's). A-E use the shared ridge head over each arm's representation; E2/F use the model-native phase-type RUL."
 }
