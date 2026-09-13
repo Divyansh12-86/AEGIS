@@ -80,9 +80,8 @@ class BaumWelch:
             total_ll += res.log_likelihood
             results.append(res)
             # xi: posterior over (state, elapsed) [T, M, Dmax]
-            with np.errstate(divide="ignore"):
-                joint = res.alpha + res.beta
-            xi = np.exp(joint - np.log(np.exp(res.log_likelihood)))
+            joint = res.alpha + res.beta
+            xi = np.exp(joint - res.log_likelihood)  # ponytail: was log(exp(ll)); underflowed (ll < -745) to nan_to_num'd wrong counts
             xi = np.nan_to_num(xi, nan=0.0, posinf=0.0, neginf=0.0)
             T = len(v)
             # initial-state counts: posterior of s_0 (any elapsed; fresh seg)

@@ -59,11 +59,24 @@ class PhaseTypeRUL:
         # absorbing probability from each transient state
         self.absorb_p = self.hsmm.A[np.ix_(self.transient, [absb])].ravel()
         # fundamental matrix Phi = (I - Q)^-1
-        try:
-            self.Phi = np.linalg.inv(np.eye(n) - Q)
-        except np.linalg.LinAlgError:
-            # near-singular: fall back to pseudo-inverse
-            self.Phi = np.linalg.pinv(np.eye(n) - Q)
+        # A transient class that can never reach the absorbing state gives
+        # a singular (I - Q): RUL is genuinely infinite there. pinv would
+        # silently return ~0 — raise instead (degenerate fit, PRD §12).
+        absorb_p = self.hsmm.A[np.ix_(self.transient, [absb])].ravel()
+        # multi-step reachability: absorb probability through any chain
+        P = self.hsmm.A.copy()
+        reach = absorb_p.copy()
+        for _ in range(len(self.transient)):
+            reach = np.maximum(reach, (P @ self.hsmm.A)[
+                np.ix_(self.transient, [absb])
+            ].ravel())
+            P = P @ self.hsmm.A
+        if (reach <= 1e-12).any():
+            raise ValueError(
+                "degenerate HSMM: some transient state cannot reach the "
+                "absorbing state; expected RUL is infinite (PRD §12)"
+            )
+        self.Phi = np.linalg.inv(np.eye(n) - Q)
         # mean dwell mu over transient states
         self.mu = self.hsmm.D.mean()[self.transient]
         # fresh-entry expected total time: (Phi mu)

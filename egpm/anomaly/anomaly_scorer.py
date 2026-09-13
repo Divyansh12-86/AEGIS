@@ -72,7 +72,9 @@ class AnomalyScorer:
         for t in range(1, T):
             if path[t] != path[t - 1]:
                 transition[t] = -logA[path[t - 1], path[t]]
-        # duration surprisal: -log S(tau) — mass of dwelling >= tau
+        # duration surprisal: -log S(tau) — surprisal of the segment having
+        # survived tau steps (mass of dwelling >= tau). Implausibly long
+        # stays are penalized without requiring the segment to have ended.
         dur = np.empty(T)
         for t in range(T):
             tau_t = int(np.clip(tau[t], 1, hsmm.d_max))
