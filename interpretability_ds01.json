@@ -1,0 +1,45 @@
+{
+  "experiment": "interpretability_suite_sec24",
+  "config": {
+    "window_length": 4,
+    "stage1_steps": 300,
+    "n_states": 5,
+    "d_max": 10,
+    "n_codes": 16,
+    "seed": 0,
+    "seed_b": 1
+  },
+  "results": {
+    "event_coherence": {
+      "silhouette": 0.021952871060601772,
+      "within_between_ratio": 0.7573514147936913,
+      "n_tokens": 8
+    },
+    "event_stability": {
+      "matched_usage_overlap": 0.9057971014492753,
+      "n_codes": 16
+    },
+    "cross_unit_consistency": {
+      "jsd": 0.22371937115927945,
+      "jsd_sqrt_normalized": 0.22371937115927945
+    },
+    "temporal_validity": {
+      "mean_detection_rate": 1.0,
+      "mean_abs_lag": 2.0,
+      "n_units_with_truth": 6,
+      "note": ""
+    },
+    "explanation_faithfulness": {
+      "mean_score_reduction": NaN,
+      "n_anomalous_runs": 0,
+      "note": "score must DROP when the flagged subsequence is masked; reduction > 0 is the pass signal (PRD \u00a724)"
+    },
+    "anomaly_score_rank_correlation": {
+      "spearman": NaN,
+      "note": "single-class units available; needs both classes for the rank correlation (evaluation-only consumption)"
+    }
+  },
+  "wall_clock_s": 4.130755186080933,
+  "notes": "All six PRD \u00a724 metrics; fitting on train/val units only; labels consumed for evaluation only (PRD \u00a723).",
+  "dataset": "N-CMAPSS DS01"
+}
