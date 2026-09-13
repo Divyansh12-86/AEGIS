@@ -4,30 +4,18 @@ from __future__ import annotations
 from typing import Dict, Tuple
 
 import numpy as np
+from scipy.stats import rankdata
 
 
 def auroc(scores: np.ndarray, labels: np.ndarray) -> float:
-    """ROC AUC via the rank statistic (no sklearn dependency)."""
+    """ROC AUC via the rank statistic (average-rank ties, no sklearn)."""
     scores = np.asarray(scores, dtype=np.float64)
     labels = np.asarray(labels, dtype=int)
     pos = labels == 1
-    neg = ~pos
-    n_pos, n_neg = int(pos.sum()), int(neg.sum())
+    n_pos, n_neg = int(pos.sum()), int((~pos).sum())
     if n_pos == 0 or n_neg == 0:
         raise ValueError("AUROC needs both classes present")
-    order = np.argsort(scores, kind="mergesort")
-    ranks = np.empty_like(order, dtype=np.float64)
-    ranks[order] = np.arange(1, len(scores) + 1)
-    # average ranks for ties
-    s_sorted = scores[order]
-    i = 0
-    while i < len(s_sorted):
-        j = i
-        while j + 1 < len(s_sorted) and s_sorted[j + 1] == s_sorted[i]:
-            j += 1
-        avg = (i + j + 2) / 2.0  # 1-indexed average
-        ranks[order[i : j + 1]] = avg
-        i = j + 1
+    ranks = rankdata(scores)
     return float((ranks[pos].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 

@@ -66,6 +66,21 @@ def _windows_of(dataset: UnitDataset, unit_ids, prep: Preprocessor, stats) -> Li
     return [prep.process(dataset[uid], norm_stats=stats).X for uid in unit_ids]
 
 
+def _normal_anomaly_split(dataset: UnitDataset, seed: int):
+    """Per-seed normal-only train split + eval sets (PRD §10.4, §21)."""
+    normal_ids = [r.unit_id for r in dataset.records
+                  if r.anomaly_labels is None or r.anomaly_labels[0] == 0]
+    anom_ids = [r.unit_id for r in dataset.records
+                if r.anomaly_labels is not None and r.anomaly_labels[0] == 1]
+    rng = np.random.default_rng(seed)
+    rng.shuffle(normal_ids)
+    n_train = max(1, int(0.7 * len(normal_ids)))
+    train_normals, eval_normals = normal_ids[:n_train], normal_ids[n_train:]
+    if not eval_normals or not anom_ids:
+        raise ValueError("need both normal-eval and anomalous units")
+    return train_normals, eval_normals, anom_ids
+
+
 def deliverable_e(
     dataset: Optional[UnitDataset] = None,
     n_seeds: int = 3,
@@ -101,17 +116,7 @@ def deliverable_e(
         sb = SplitBuilder(dataset, seed=seed)
         split = sb.build()
         stats = sb.fit_normalization(split)
-        normal_ids = [r.unit_id for r in dataset.records
-                      if r.anomaly_labels is None or r.anomaly_labels[0] == 0]
-        anom_ids = [r.unit_id for r in dataset.records
-                    if r.anomaly_labels is not None and r.anomaly_labels[0] == 1]
-        # PRD §10.4: fit normal-only. Hold out some normal units for validation.
-        rng = np.random.default_rng(seed)
-        rng.shuffle(normal_ids)
-        n_train = max(1, int(0.7 * len(normal_ids)))
-        train_normals, eval_normals = normal_ids[:n_train], normal_ids[n_train:]
-        if not eval_normals or not anom_ids:
-            raise ValueError("need both normal-eval and anomalous units")
+        train_normals, eval_normals, anom_ids = _normal_anomaly_split(dataset, seed)
 
         prep = Preprocessor(window_length=window_length, fs_sync=1.0)
         train_runs = _windows_of(dataset, train_normals, prep, stats)
@@ -260,14 +265,7 @@ def run_core_ablations(
         sb = SplitBuilder(dataset, seed=seed)
         split = sb.build()
         stats = sb.fit_normalization(split)
-        normal_ids = [r.unit_id for r in dataset.records
-                      if r.anomaly_labels is None or r.anomaly_labels[0] == 0]
-        anom_ids = [r.unit_id for r in dataset.records
-                    if r.anomaly_labels is not None and r.anomaly_labels[0] == 1]
-        rng = np.random.default_rng(seed)
-        rng.shuffle(normal_ids)
-        n_train = max(1, int(0.7 * len(normal_ids)))
-        train_normals, eval_normals = normal_ids[:n_train], normal_ids[n_train:]
+        train_normals, eval_normals, anom_ids = _normal_anomaly_split(dataset, seed)
         prep = Preprocessor(window_length=window_length, fs_sync=1.0)
         train_runs = _windows_of(dataset, train_normals, prep, stats)
         eval_norm = _windows_of(dataset, eval_normals, prep, stats)
@@ -322,8 +320,16 @@ def run_core_ablations(
             )
 
         # ---------------- A1: continuous Gaussian HSMM ----------------
+        # hsmm is a placeholder; fit_em replaces it (means/ivar start flat)
+        rng = np.random.default_rng(seed)
         a1 = ContinuousHSMM(
-            hsmm=_dummy_hsmm(n_states, d_max, seed),
+            hsmm=HSMM(
+                n_states=n_states, n_events=2,
+                pi=rng.dirichlet(np.ones(n_states)),
+                A=rng.dirichlet(np.ones(n_states), size=n_states),
+                D=DurationHistogram.from_means(np.full(n_states, 2.0), d_max),
+                d_max=d_max, seed=seed,
+            ),
             means=np.zeros((n_states, tcfg.embed_dim)),
             inv_variances=np.ones((n_states, tcfg.embed_dim)),
         )
@@ -393,13 +399,3 @@ def run_core_ablations(
     )
 
 
-def _dummy_hsmm(n_states: int, d_max: int, seed: int):
-    """Placeholder for ContinuousHSMM construction before fit_em replaces it."""
-    rng = np.random.default_rng(seed)
-    return HSMM(
-        n_states=n_states, n_events=2,
-        pi=rng.dirichlet(np.ones(n_states)),
-        A=rng.dirichlet(np.ones(n_states), size=n_states),
-        D=DurationHistogram.from_means(np.full(n_states, 2.0), d_max),
-        d_max=d_max, seed=seed,
-    )

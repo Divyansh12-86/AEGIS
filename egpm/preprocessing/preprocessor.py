@@ -61,14 +61,6 @@ def _sync_channel(
 
 
 @dataclass
-class ChannelSpec:
-    """One sensor channel's native rate relative to the sync grid."""
-
-    name: str
-    fs_in: float
-
-
-@dataclass
 class WindowedSequence:
     """Output contract for one unit run (PRD §28).
 
@@ -116,7 +108,6 @@ class Preprocessor:
         stride: Optional[int] = None,
         fs_sync: float = 1.0,
         gap_loocf_max: int = 5,
-        channel_specs: Optional[List[ChannelSpec]] = None,
     ):
         if window_length < 1:
             raise ValueError("window_length must be >= 1")
@@ -126,7 +117,6 @@ class Preprocessor:
             raise ValueError("stride must be >= 1")
         self.fs_sync = float(fs_sync)
         self.gap_loocf_max = int(gap_loocf_max)
-        self.channel_specs = channel_specs
 
     # -- stages, exposed for unit testing -------------------------------------
     def synchronize(self, record: UnitRecord) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -140,19 +130,15 @@ class Preprocessor:
         T, d = X_in.shape
         if t_in.shape[0] != T:
             raise ValueError("timestamps/signals length mismatch")
-        if self.channel_specs is not None and len(self.channel_specs) != d:
-            raise ValueError(
-                f"channel_specs length {len(self.channel_specs)} != channels {d}"
-            )
         span = t_in[-1] - t_in[0]
         T_out = int(span * self.fs_sync) + 1
         if T_out < 1:
             raise ValueError("degenerate time span")
         t_grid = t_in[0] + np.arange(T_out) / self.fs_sync
-        cols = []
-        for c in range(d):
-            fs_c = self.channel_specs[c].fs_in if self.channel_specs else self.fs_sync
-            cols.append(_sync_channel(t_grid, t_in, X_in[:, c], fs_c, self.fs_sync))
+        cols = [
+            _sync_channel(t_grid, t_in, X_in[:, c], self.fs_sync, self.fs_sync)
+            for c in range(d)
+        ]
         X_sync = np.stack(cols, axis=1)
         return X_sync, np.ones_like(X_sync), t_grid
 

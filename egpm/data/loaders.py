@@ -158,15 +158,7 @@ class NCMAPSSLoader:
     archive (see :meth:`NCMAPSSLoader.to_npz`) is also accepted.
     """
 
-    #: channels of ``A``: (unit number, cycle, Fc, hs)
-    _A_COLS = 4
-
-    def __init__(
-        self,
-        use_health_proxies: bool = True,
-        max_cycles_per_unit: Optional[int] = None,
-    ):
-        self.use_health_proxies = use_health_proxies
+    def __init__(self, max_cycles_per_unit: Optional[int] = None):
         self.max_cycles_per_unit = max_cycles_per_unit
 
     # -- public API ----------------------------------------------------------
@@ -226,7 +218,7 @@ class NCMAPSSLoader:
                 A = np.array(f[f"A_{part}"])  # [T, 4]: unit, cycle, Fc, hs
                 Y = np.array(f[f"Y_{part}"]).ravel()  # [T]: ground-truth RUL
                 W = np.array(f[f"W_{part}"])  # [T, 4]
-                if self.use_health_proxies and f"X_s_{part}" in f:
+                if f"X_s_{part}" in f:
                     Xs = np.array(f[f"X_s_{part}"])  # [T, n_sensors]
                     signals_all = np.concatenate([W, Xs], axis=1)
                 else:
@@ -309,9 +301,7 @@ class MIMIILoader:
     tests use :meth:`synthetic_like` which produces the same contract.
     """
 
-    _ANOMALY_TAG = ("normal", "anomaly")
-
-    def __init__(
+    def __init__(       
         self,
         machines: Sequence[str] = ("pump", "fan", "valve", "slider"),
         dbs: Sequence[str] = ("0dB", "6dB", "min6dB"),

@@ -146,12 +146,8 @@ def hungarian_state_match(
     (PRD §25 'state permutation across seeds' mitigation — always match
     before comparing across seeds).
     """
-    a = np.stack([
-        np.concatenate(runs, axis=0).mean(axis=0)
-        for runs in [posterior_runs_seed_a]
-    ])[0]
-    b = np.concatenate([np.concatenate(runs, axis=0).mean(axis=0)
-                        for runs in [posterior_runs_seed_b]])
+    a = np.concatenate(posterior_runs_seed_a, axis=0).mean(axis=0)
+    b = np.concatenate(posterior_runs_seed_b, axis=0).mean(axis=0)
     M = len(a)
     if len(b) != M:
         raise ValueError("seeds must share state count")

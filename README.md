@@ -53,12 +53,6 @@ egpm/
 ├── README.md
 ├── .gitignore
 ├── requirements.txt
-├── environment.yml              # optional conda lockfile
-│
-├── configs/                     # YAML/Hydra hyperparameter + experiment configs
-│   ├── base.yaml
-│   ├── ncmapss.yaml
-│   └── mimii.yaml
 │
 ├── data/                        # dataset loaders, unit-level split logic
 │   ├── loaders.py               # UnitRecord/UnitDataset, NCMAPSSLoader, MIMIILoader
@@ -143,7 +137,7 @@ Splits are made at the **unit (asset) level**, before any windowing — never at
 | Layer | Technology |
 |---|---|
 | Modeling | PyTorch |
-| Config management | Hydra / YAML |
+| Config management | Dataclass configs in code (`TrainerConfig`) |
 | Experiment tracking | MLflow or Weights & Biases (suggested, not mandated) |
 | HSMM inference | Custom explicit-duration forward-backward + segmental Viterbi |
 | Testing | pytest |

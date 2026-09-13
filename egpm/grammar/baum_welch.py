@@ -36,14 +36,6 @@ _EPS = 1e-300
 class EMTrace:
     log_likelihoods: List[float]
 
-    @property
-    def converged(self) -> bool:
-        return (
-            len(self.log_likelihoods) >= 2
-            and self.log_likelihoods[-1] >= self.log_likelihoods[-2]
-            and (self.log_likelihoods[-1] - self.log_likelihoods[-2]) < 1e-6
-        )
-
 
 class BaumWelch:
     """EM fitting for (pi, A, B, D) with explicit durations."""
