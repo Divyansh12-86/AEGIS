@@ -1,0 +1,183 @@
+{
+  "experiment": "rul_readout_study",
+  "dataset": "N-CMAPSS/N-CMAPSS DS02 006.h5",
+  "n_independent_test_units": 2,
+  "test_unit_ids": [
+    "DS02_u2",
+    "DS02_u5"
+  ],
+  "feature_contract": "per-step: event_onehot[K] + posterior[M] + dwell[M]/d_max + emis_surp[1] + dur_surp[1]",
+  "heads": {
+    "ridge": "closed-form ridge (reference)",
+    "gru": "1-layer GRU hidden=32, Adam lr=1e-3, ES patience 10 on val RMSE",
+    "tcn": "2 dilated causal convs (d=1,2) width 32, ES same",
+    "tsmixer": "feature-MLP + transpose time-MLP mixer, hidden 32, 1 stack, ES same",
+    "raw_tsmixer": "CONTROL: raw sensor windows -> same TSMixer (ceiling ref)",
+    "z_tsmixer": "CONTROL: encoder z seq -> same TSMixer (info-loss probe)"
+  },
+  "results": {
+    "ridge": {
+      "rmse": {
+        "mean": 21.62632255712732,
+        "std": 0.21225825088584116,
+        "per_seed": [
+          21.705604424882956,
+          21.83741282730587,
+          21.335950419193125
+        ]
+      },
+      "mae": {
+        "mean": 17.13505193240283,
+        "std": 0.47218031274617067,
+        "per_seed": [
+          17.69728201407834,
+          17.165953514618995,
+          16.54192026851116
+        ]
+      },
+      "epochs_per_seed": [
+        0,
+        0,
+        0
+      ],
+      "params": 0,
+      "early_stop": false
+    },
+    "gru": {
+      "rmse": {
+        "mean": 27.368585675565942,
+        "std": 0.08251314745671265,
+        "per_seed": [
+          27.453773453951722,
+          27.395056329121783,
+          27.25692724362432
+        ]
+      },
+      "mae": {
+        "mean": 22.751474333972464,
+        "std": 0.04656995857677366,
+        "per_seed": [
+          22.80018648287145,
+          22.765504278787752,
+          22.688732240258194
+        ]
+      },
+      "epochs_per_seed": [
+        200,
+        200,
+        200
+      ],
+      "params": 5985,
+      "early_stop": true
+    },
+    "tcn": {
+      "rmse": {
+        "mean": 20.44289030735521,
+        "std": 4.598724046175216,
+        "per_seed": [
+          16.869290988247727,
+          17.523902550422623,
+          26.935477383395288
+        ]
+      },
+      "mae": {
+        "mean": 15.445904044601008,
+        "std": 3.952412677332384,
+        "per_seed": [
+          13.641606787355935,
+          11.766488255524054,
+          20.92961709092303
+        ]
+      },
+      "epochs_per_seed": [
+        146,
+        45,
+        22
+      ],
+      "params": 5857,
+      "early_stop": true
+    },
+    "tsmixer": {
+      "rmse": {
+        "mean": 18.77304852527141,
+        "std": 0.931595995588412,
+        "per_seed": [
+          19.696324136123255,
+          19.12533839372024,
+          17.49748304597074
+        ]
+      },
+      "mae": {
+        "mean": 14.632593036909412,
+        "std": 0.16967357164525596,
+        "per_seed": [
+          14.713178605568118,
+          14.396562785637087,
+          14.788037719523034
+        ]
+      },
+      "epochs_per_seed": [
+        176,
+        99,
+        110
+      ],
+      "params": 3037,
+      "early_stop": true
+    },
+    "raw_tsmixer": {
+      "rmse": {
+        "mean": 26.046632324718846,
+        "std": 0.2592513980748495,
+        "per_seed": [
+          26.26855193697383,
+          26.188418824950308,
+          25.6829262122324
+        ]
+      },
+      "mae": {
+        "mean": 21.841074393047553,
+        "std": 0.18377638976794713,
+        "per_seed": [
+          21.99520464641292,
+          21.945237136468656,
+          21.582781396261076
+        ]
+      },
+      "epochs_per_seed": [
+        34,
+        34,
+        31
+      ],
+      "params": 7657,
+      "early_stop": true
+    },
+    "z_tsmixer": {
+      "rmse": {
+        "mean": 25.630399452310588,
+        "std": 0.07163729412918195,
+        "per_seed": [
+          25.67437887756768,
+          25.52937044261553,
+          25.687449036748554
+        ]
+      },
+      "mae": {
+        "mean": 21.661956601026578,
+        "std": 0.035684546004485125,
+        "per_seed": [
+          21.676041347224537,
+          21.612946440533893,
+          21.696882015321314
+        ]
+      },
+      "epochs_per_seed": [
+        50,
+        59,
+        52
+      ],
+      "params": 1777,
+      "early_stop": true
+    }
+  },
+  "wall_clock_s": 39.524473905563354
+}
