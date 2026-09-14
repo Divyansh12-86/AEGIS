@@ -43,13 +43,14 @@ from ..preprocessing import Preprocessor
 from ..training import Trainer, TrainerConfig
 from ..grammar import ForwardBackward, FirstOrderHMMFitter
 from ..rul import PhaseTypeRUL
-from ..evaluation import rul_metrics
+from ..evaluation import rul_metrics, per_unit_metrics, summarize_units
 from ..interpretability.metrics import event_stability, temporal_validity
 from ..utils import set_global_seed
 
 
 ARMS = ["A_continuous", "B_continuous_hmm", "C_vq_markov",
-        "D_vq_hmm", "E_vq_hsmm", "E2_hsmm_native", "F_full_egpm"]
+        "D_vq_hmm", "E_vq_hsmm", "E2_hsmm_native", "F_full_egpm",
+        "CNN_RUL_baseline"]
 
 
 @dataclass
@@ -211,6 +212,9 @@ def run_ablation_experiment(
             m = rul_metrics(np.concatenate(preds), np.concatenate(trues))
             per_arm_seed[arm].setdefault("rmse", []).append(m["RMSE"])
             per_arm_seed[arm].setdefault("mae", []).append(m["MAE"])
+            per_arm_seed[arm].setdefault("rmse_per_unit", []).append(
+                per_unit_metrics(preds, trues).tolist()
+            )
             if det:
                 per_arm_seed[arm].setdefault("onset_detection", []).append(float(np.mean(det)))
                 per_arm_seed[arm].setdefault("onset_lag", []).append(float(np.nanmean(lag)))
@@ -326,6 +330,58 @@ def run_ablation_experiment(
         f_test = rul_feats(hsmm_F, ev_test)
         fit_and_eval(f_train, f_test, "F_full_egpm", extra=onset_extra_E(hsmm_F), t_arm=t_arm)
 
+        # CNN-RUL real-data baseline (M9): same windows/splits, trained on
+        # window MSE with val early-stop; per-window predict like every arm.
+        t_arm = time.time()
+        from ..baselines import CNNRUL
+        cnn = CNNRUL(n_channels=Xtr.shape[-1], window_length=window_length)
+        torch.manual_seed(seed)
+        opt = torch.optim.Adam(cnn.parameters(), lr=1e-3)
+        Xva = torch.as_tensor(
+            np.concatenate([prep.process(dataset[u], norm_stats=stats).X
+                             for u in split.val_unit_ids]),
+            dtype=torch.float32,
+        )
+        yva = np.concatenate([
+            prep.process(dataset[u], norm_stats=stats).rul_labels
+            for u in split.val_unit_ids
+        ])
+        Mva = torch.ones_like(Xva)
+        ytr_t = torch.as_tensor(y_tr, dtype=torch.float32)
+        best, best_state, wait = float("inf"), None, 0
+        for _ in range(100):
+            cnn.train()
+            opt.zero_grad()
+            loss = ((cnn(Xtr, Mtr) - ytr_t) ** 2).mean()
+            loss.backward(); opt.step()
+            cnn.eval()
+            with torch.no_grad():
+                vv = float(((cnn(Xva, Mva) - torch.as_tensor(yva, dtype=torch.float32)) ** 2).mean())
+            if vv < best - 1e-4:
+                best, wait = vv, 0
+                best_state = {k: t.clone() for k, t in cnn.state_dict().items()}
+            else:
+                wait += 1
+                if wait >= 10:
+                    break
+        cnn.load_state_dict(best_state)
+        cnn.eval()
+        cnn_preds = []
+        with torch.no_grad():
+            for s in test:
+                X = torch.as_tensor(s.X, dtype=torch.float32)
+                cnn_preds.append(cnn(X, torch.ones_like(X)).numpy())
+        per_arm_seed["CNN_RUL_baseline"].setdefault("rmse", []).append(
+            rul_metrics(np.concatenate(cnn_preds), np.concatenate(
+                [s.rul_labels for s in test]))["RMSE"])
+        per_arm_seed["CNN_RUL_baseline"].setdefault("mae", []).append(
+            rul_metrics(np.concatenate(cnn_preds), np.concatenate(
+                [s.rul_labels for s in test]))["MAE"])
+        per_arm_seed["CNN_RUL_baseline"].setdefault("rmse_per_unit", []).append(
+            per_unit_metrics(cnn_preds, [s.rul_labels for s in test]).tolist())
+        per_arm_seed["CNN_RUL_baseline"].setdefault("runtime_s", []).append(
+            time.time() - t_arm)
+
         # event stability: this seed's train tokenization vs next seed's
         # (same units, different encoder init) — matched usage overlap
         ev_by_seed[seed] = ev_train
@@ -344,8 +400,17 @@ def run_ablation_experiment(
         d = per_arm_seed[arm]
         results[arm] = {
             k: {"mean": float(np.mean(v)), "std": float(np.std(v)), "per_seed": v}
-            for k, v in d.items()
+            for k, v in d.items() if k != "rmse_per_unit"
         }
+
+    # §23 unit-level stats: windows within a unit are not independent, so the
+    # independent sample is per-unit RMSE. Units are shared across seeds →
+    # average each unit over seeds first, then bootstrap over units.
+    per_unit_rmse = {
+        arm: np.mean(np.array(per_arm_seed[arm]["rmse_per_unit"]), axis=0)
+        for arm in ARMS if per_arm_seed[arm].get("rmse_per_unit")
+    }
+    unit_stats = summarize_units(per_unit_rmse, reference_arm="F_full_egpm")
     # E1/E2/E3 decomposition: readout effect (E1 vs E2), calibration effect
     # (E2 vs E3=F). Both effects computed per seed, paired.
     decomp = {}
@@ -369,17 +434,20 @@ def run_ablation_experiment(
         "n_train_units": len(split.train_unit_ids),
         "n_val_units": len(split.val_unit_ids),
         "statistical_limitations": [
-            f"only {len(split.test_unit_ids)} independent test units — no "
-            "confidence intervals reported; per-seed numbers reflect encoder/EM "
-            "variance, NOT independent test data (seeds share the same test units)",
+            f"only {len(split.test_unit_ids)} independent test units — CIs are "
+            "wide and Wilcoxon underpowered by construction; per-seed numbers "
+            "reflect encoder/EM variance (seeds share the same test units)",
         ],
         "results": results,
+        "unit_level_stats": unit_stats,
         "E_decomposition": decomp,
         "notes": "If a simpler arm matches/beats F, that is the finding. "
                  "E1 vs E2 = readout effect; E2 vs F = absorbing-calibration "
                  "effect (F's readout is identical to E2's). "
                  "A-E use the shared ridge head over each arm's representation; "
-                 "E2/F use the model-native phase-type RUL.",
+                 "E2/F use the model-native phase-type RUL. "
+                 "unit_level_stats follows PRD §23: per-unit aggregation, "
+                 "bootstrap CIs, paired Wilcoxon vs F.",
     }
     return report
 

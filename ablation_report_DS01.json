@@ -16,7 +16,7 @@
   "n_train_units": 6,
   "n_val_units": 2,
   "statistical_limitations": [
-    "only 2 independent test units \u2014 no confidence intervals reported; per-seed numbers reflect encoder/EM variance, NOT independent test data (seeds share the same test units)"
+    "only 2 independent test units \u2014 CIs are wide and Wilcoxon underpowered by construction; per-seed numbers reflect encoder/EM variance (seeds share the same test units)"
   ],
   "results": {
     "A_continuous": {
@@ -39,12 +39,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 0.00014797846476236978,
-        "std": 3.0428247374367437e-05,
+        "mean": 0.0004391670227050781,
+        "std": 0.00044414947550248707,
         "per_seed": [
-          0.00019097328186035156,
-          0.00012803077697753906,
-          0.00012493133544921875
+          0.0010671615600585938,
+          0.0001361370086669922,
+          0.00011420249938964844
         ]
       }
     },
@@ -68,12 +68,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 0.6312272548675537,
-        "std": 0.005193632717950129,
+        "mean": 0.6106061935424805,
+        "std": 0.001710102438980818,
         "per_seed": [
-          0.6344387531280518,
-          0.6353421211242676,
-          0.6239008903503418
+          0.6109509468078613,
+          0.608360767364502,
+          0.6125068664550781
         ]
       }
     },
@@ -97,12 +97,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 9.743372599283855e-05,
-        "std": 2.063235439578242e-06,
+        "mean": 9.830792744954427e-05,
+        "std": 6.230388362413928e-06,
         "per_seed": [
-          9.512901306152344e-05,
-          9.703636169433594e-05,
-          0.00010013580322265625
+          9.489059448242188e-05,
+          0.00010704994201660156,
+          9.298324584960938e-05
         ]
       },
       "stability": {
@@ -134,12 +134,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 0.12867498397827148,
-        "std": 0.0013094230249662607,
+        "mean": 0.1254128615061442,
+        "std": 0.00036705747984540484,
         "per_seed": [
-          0.12973594665527344,
-          0.12945890426635742,
-          0.1268301010131836
+          0.12501811981201172,
+          0.12531828880310059,
+          0.1259021759033203
         ]
       },
       "stability": {
@@ -189,12 +189,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 3.669689337412516,
-        "std": 0.03524895284783313,
+        "mean": 3.5756322542826333,
+        "std": 0.00405233338382777,
         "per_seed": [
-          3.696146249771118,
-          3.693049907684326,
-          3.6198718547821045
+          3.574220895767212,
+          3.5715277194976807,
+          3.581148147583008
         ]
       },
       "stability": {
@@ -244,12 +244,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 0.06925304730733235,
-        "std": 0.002319508277513519,
+        "mean": 0.0662233034769694,
+        "std": 0.0006205792224244248,
         "per_seed": [
-          0.0722341537475586,
-          0.06894779205322266,
-          0.06657719612121582
+          0.06554889678955078,
+          0.0670468807220459,
+          0.06607413291931152
         ]
       },
       "stability": {
@@ -299,12 +299,12 @@
         ]
       },
       "runtime_s": {
-        "mean": 0.06897600491841634,
-        "std": 0.0017271027644571836,
+        "mean": 0.06643358866373698,
+        "std": 0.0006166193530139591,
         "per_seed": [
-          0.0708160400390625,
-          0.06944704055786133,
-          0.0666649341583252
+          0.06572604179382324,
+          0.06722879409790039,
+          0.0663459300994873
         ]
       },
       "stability": {
@@ -314,6 +314,175 @@
           0.9347826086956522,
           0.9420289855072463
         ]
+      }
+    },
+    "CNN_RUL_baseline": {
+      "rmse": {
+        "mean": 34.16445027344435,
+        "std": 0.3683727175889566,
+        "per_seed": [
+          34.57458080866303,
+          33.681190116132235,
+          34.23757989553779
+        ]
+      },
+      "mae": {
+        "mean": 29.75578183394212,
+        "std": 0.6426727218417407,
+        "per_seed": [
+          30.660341715201355,
+          29.226880049094177,
+          29.38012373753083
+        ]
+      },
+      "runtime_s": {
+        "mean": 0.3308514753977458,
+        "std": 0.008305155855512806,
+        "per_seed": [
+          0.3211791515350342,
+          0.32991719245910645,
+          0.3414580821990967
+        ]
+      }
+    }
+  },
+  "unit_level_stats": {
+    "A_continuous": {
+      "mean": 24.15814570460456,
+      "ci95": [
+        22.742748970131924,
+        25.573542439077197
+      ],
+      "per_unit": [
+        22.742748970131924,
+        25.573542439077197
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "B_continuous_hmm": {
+      "mean": 22.35486710350262,
+      "ci95": [
+        21.520063980645276,
+        23.189670226359965
+      ],
+      "per_unit": [
+        21.520063980645276,
+        23.189670226359965
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "C_vq_markov": {
+      "mean": 23.8466891471074,
+      "ci95": [
+        22.826716425414038,
+        24.866661868800765
+      ],
+      "per_unit": [
+        22.826716425414038,
+        24.866661868800765
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "D_vq_hmm": {
+      "mean": 23.429332094970494,
+      "ci95": [
+        22.24662629282349,
+        24.6120378971175
+      ],
+      "per_unit": [
+        22.24662629282349,
+        24.6120378971175
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "E_vq_hsmm": {
+      "mean": 19.849579174613567,
+      "ci95": [
+        19.445367367957545,
+        20.253790981269585
+      ],
+      "per_unit": [
+        19.445367367957545,
+        20.253790981269585
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "E2_hsmm_native": {
+      "mean": 23.995990410106472,
+      "ci95": [
+        23.102673785359624,
+        24.889307034853317
+      ],
+      "per_unit": [
+        24.889307034853317,
+        23.102673785359624
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
+      }
+    },
+    "F_full_egpm": {
+      "mean": 22.851009485452877,
+      "ci95": [
+        21.042086916957896,
+        24.65993205394786
+      ],
+      "per_unit": [
+        24.65993205394786,
+        21.042086916957896
+      ],
+      "n_units": 2
+    },
+    "CNN_RUL_baseline": {
+      "mean": 34.02019193621092,
+      "ci95": [
+        31.77643217576043,
+        36.26395169666141
+      ],
+      "per_unit": [
+        31.77643217576043,
+        36.26395169666141
+      ],
+      "n_units": 2,
+      "wilcoxon_vs_ref": {
+        "statistic": NaN,
+        "p": NaN,
+        "n": 2,
+        "note": "only 2 units; Wilcoxon underpowered (needs >=6)"
       }
     }
   },
@@ -351,5 +520,5 @@
       "mean": 1.057765603402218
     }
   },
-  "notes": "If a simpler arm matches/beats F, that is the finding. E1 vs E2 = readout effect; E2 vs F = absorbing-calibration effect (F's readout is identical to E2's). A-E use the shared ridge head over each arm's representation; E2/F use the model-native phase-type RUL."
+  "notes": "If a simpler arm matches/beats F, that is the finding. E1 vs E2 = readout effect; E2 vs F = absorbing-calibration effect (F's readout is identical to E2's). A-E use the shared ridge head over each arm's representation; E2/F use the model-native phase-type RUL. unit_level_stats follows PRD \u00a723: per-unit aggregation, bootstrap CIs, paired Wilcoxon vs F."
 }

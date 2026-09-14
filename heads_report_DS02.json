@@ -1,0 +1,62 @@
+{
+  "experiment": "fault_health_heads_m7",
+  "config": {
+    "dataset": "N-CMAPSS/N-CMAPSS DS02 006.h5",
+    "n_seeds": 3,
+    "window_length": 4,
+    "n_states": 5,
+    "d_max": 10,
+    "n_codes": 16,
+    "stage1_steps": 300,
+    "em_max_iter": 10,
+    "em_restarts": 3,
+    "hs_classes": [
+      1,
+      2
+    ],
+    "fault_labels": "run-level hs class (N-CMAPSS auxiliary health state)",
+    "health_validation": "per-unit Spearman(health_index, hs_label), PRD \u00a714"
+  },
+  "results": {
+    "fault_accuracy": {
+      "mean": 1.0,
+      "std_over_seeds": 0.0,
+      "per_seed": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "unit_mean": 1.0,
+      "unit_ci95": [
+        1.0,
+        1.0
+      ],
+      "per_unit": [
+        1.0,
+        1.0
+      ],
+      "n_units": 2
+    },
+    "health_spearman_vs_hs": {
+      "mean": 0.0956640556452548,
+      "std_over_seeds": 0.3945133798272065,
+      "per_seed": [
+        -0.4611106882358435,
+        0.4050776056638664,
+        0.3430252495077415
+      ],
+      "unit_mean": 0.09566405564525482,
+      "unit_ci95": [
+        0.05507305467276182,
+        0.1362550566177478
+      ],
+      "per_unit": [
+        0.05507305467276182,
+        0.1362550566177478
+      ],
+      "n_units": 2
+    }
+  },
+  "notes": "Fault: run-level hs class from belief trajectory + duration stats (no raw-embedding bypass, PRD Decision 5). Health: fixed ordinal severity weights validated against hs labels (PRD \u00a714 \u2014 validity is checked, not assumed). Unit-level bootstrap CIs per \u00a723; only 2 test units \u2192 CIs wide.",
+  "wall_clock_s": 23.363480806350708
+}
