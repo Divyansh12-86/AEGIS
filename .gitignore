@@ -50,6 +50,10 @@ data/audit_log.jsonl
 *.sqlite3
 N-CMAPSS/*.h5
 N-CMAPSS/*.mat
+fan/
+fan/**/*.wav
+.mimii_logs/
+session-*.md
 
 # --- Jupyter ---
 .ipynb_checkpoints/

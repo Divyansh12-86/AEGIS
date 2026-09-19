@@ -1,0 +1,125 @@
+{
+  "experiment": "mimii_fan_real",
+  "machine_id": "id_00",
+  "config": {
+    "window_length": 16,
+    "stage1_steps": 300,
+    "n_states": 3,
+    "d_max": 12,
+    "n_codes": 8,
+    "ae_steps": 200,
+    "n_normal": 1418,
+    "n_abnormal": 407
+  },
+  "n_seeds": 3,
+  "results": {
+    "continuous_AE": {
+      "AUROC_mean": 0.5297222222222222,
+      "AUROC_std": 0.00627128028545543,
+      "AUROC_per_seed": [
+        0.5322641509433962,
+        0.5210927672955975,
+        0.5358097484276729
+      ],
+      "AUPRC_mean": 0.6194509006973241,
+      "AUPRC_per_seed": [
+        0.6212927223388052,
+        0.6079385931568013,
+        0.6291213865963659
+      ]
+    },
+    "pooled_events": {
+      "AUROC_mean": 0.47403825995807125,
+      "AUROC_std": 0.007303571481437082,
+      "AUROC_per_seed": [
+        0.4710455974842767,
+        0.46697327044025155,
+        0.48409591194968554
+      ],
+      "AUPRC_mean": 0.5945995951745816,
+      "AUPRC_per_seed": [
+        0.5729461981947486,
+        0.567328385533503,
+        0.6435242017954932
+      ]
+    },
+    "vq_markov": {
+      "AUROC_mean": 0.4572012578616352,
+      "AUROC_std": 0.018128601257775347,
+      "AUROC_per_seed": [
+        0.482751572327044,
+        0.44625786163522013,
+        0.4425943396226415
+      ],
+      "AUPRC_mean": 0.5594873654359832,
+      "AUPRC_per_seed": [
+        0.5704372146406531,
+        0.5503530116570983,
+        0.5576718700101984
+      ]
+    },
+    "vq_hsmm": {
+      "AUROC_mean": 0.48071540880503144,
+      "AUROC_std": 0.01023722766835415,
+      "AUROC_per_seed": [
+        0.4843238993710692,
+        0.4910534591194969,
+        0.4667688679245283
+      ],
+      "AUPRC_mean": 0.5744985000902801,
+      "AUPRC_per_seed": [
+        0.5735644073728529,
+        0.564339289648554,
+        0.5855918032494337
+      ]
+    },
+    "continuous_hsmm": {
+      "AUROC_mean": 0.565314465408805,
+      "AUROC_std": 0.024955897210319544,
+      "AUROC_per_seed": [
+        0.5583333333333333,
+        0.5388443396226416,
+        0.5987657232704402
+      ],
+      "AUPRC_mean": 0.6793588766225271,
+      "AUPRC_per_seed": [
+        0.6636609276764943,
+        0.6761049811182942,
+        0.6983107210727928
+      ]
+    }
+  },
+  "wilcoxon_vs_primary": {
+    "continuous_AE": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.763024600552995,
+      "min_p": 0.25134910881022265,
+      "n_clips": 512
+    },
+    "pooled_events": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 1.0,
+      "min_p": 0.002837544888792311,
+      "n_clips": 512
+    },
+    "vq_markov": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.5929800980174267,
+      "min_p": 0.17971249487899976,
+      "n_clips": 512
+    },
+    "continuous_hsmm": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.7054569861112734,
+      "min_p": 2.2090496998585445e-05,
+      "n_clips": 512
+    }
+  },
+  "primary_thresholds": {
+    "0": 3.670192323068218,
+    "1": 3.8569937083290635,
+    "2": 3.4387992268397527
+  },
+  "wall_clock_s": 6651.792569160461,
+  "notes": "normal-only training (70/15/15 clip split of normals, train-normal z-stats); eval = held-out normals + all abnormal clips; validation-only thresholds (99th pct); arms share tokenization/preprocessing per seed."
+}

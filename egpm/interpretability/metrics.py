@@ -66,7 +66,10 @@ def event_coherence(
         idx = np.random.default_rng(0).choice(N, 4000, replace=False)
         X, ids = X[idx], ids[idx]
         N = len(ids)
-    d2 = np.sqrt(((X[:, None, :] - X[None, :, :]) ** 2).sum(-1))
+    # ||a-b||^2 = |a|^2 + |b|^2 - 2 a.b — no [N, N, d] broadcast; the naive
+    # form OOMs (>100 GB) on real MIMII-scale inputs (N=4000, d=8192)
+    sq = (X ** 2).sum(axis=1)
+    d2 = np.sqrt(np.maximum(sq[:, None] + sq[None, :] - 2.0 * (X @ X.T), 0.0))
     same = ids[:, None] == ids[None, :]
     # silhouette per point: (b - a) / max(a, b)
     sil = np.zeros(N)

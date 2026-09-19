@@ -1,0 +1,45 @@
+{
+  "experiment": "interpretability_suite_sec24",
+  "config": {
+    "window_length": 16,
+    "stage1_steps": 200,
+    "n_states": 3,
+    "d_max": 12,
+    "n_codes": 8,
+    "seed": 0,
+    "seed_b": 1
+  },
+  "results": {
+    "event_coherence": {
+      "silhouette": 0.0025807176105078814,
+      "within_between_ratio": 0.8983105091727085,
+      "n_tokens": 8
+    },
+    "event_stability": {
+      "matched_usage_overlap": 0.6633426787307252,
+      "n_codes": 8
+    },
+    "cross_unit_consistency": {
+      "jsd": 0.035017514633729874,
+      "jsd_sqrt_normalized": 0.035017514633729874
+    },
+    "temporal_validity": {
+      "mean_detection_rate": NaN,
+      "mean_abs_lag": NaN,
+      "n_units_with_truth": 0,
+      "note": "skipped where no health-label onsets exist"
+    },
+    "explanation_faithfulness": {
+      "mean_score_reduction": 0.7235151679709145,
+      "n_anomalous_runs": 83,
+      "note": "score must DROP when the flagged subsequence is masked; reduction > 0 is the pass signal (PRD \u00a724)"
+    },
+    "anomaly_score_rank_correlation": {
+      "spearman": 0.5436739717847264,
+      "p_value": 1.490540475794895e-22,
+      "n": 275
+    }
+  },
+  "wall_clock_s": 325.93624114990234,
+  "notes": "All six PRD \u00a724 metrics; fitting on train/val units only; labels consumed for evaluation only (PRD \u00a723)."
+}

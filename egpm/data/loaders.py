@@ -294,27 +294,60 @@ class NCMAPSSLoader:
 class MIMIILoader:
     """Loader for MIMII (machine sound anomaly detection).
 
-    MIMII ships as 16 kHz mono wav files organized as
-    ``<machine>/<split>/<wav_id>.wav`` where wav_id encodes the machine ID and
-    normal/anomalous attribute. Each wav is a ~10 s clip = one "unit"; anomaly
-    labels are derived from the filename. When the raw dataset is unavailable,
-    tests use :meth:`synthetic_like` which produces the same contract.
+    Supports two on-disk layouts:
+
+    * **Download layout** (verified on disk): ``<machine>/id_XX/{normal,
+      abnormal}/NNNNNNNN.wav`` — 16 kHz, 8-channel, 10 s clips. The
+      normal/anomalous label comes from the *directory* name; unit ids are
+      namespaced by machine/id/split/stem (normal and abnormal share stems).
+    * **Archive layout** (original MIMII distribution): machine and dB level
+      appear in the path (``normal_6dB/...`` or a ``0dB``/``6dB``/``min6dB``
+      token); label from the ``anomaly`` token. Kept for backwards
+      compatibility with the synthetic tests.
+
+    With ``feature="logmel"`` (default), clips are converted to causal
+    log-mel frames (``egpm.preprocessing.spectral``): ``signals`` = [n_frames,
+    n_mels * n_channels], ``timestamps`` = frame-end times. With
+    ``feature="raw"``, signals are the raw samples [n_samples, n_channels].
     """
 
-    def __init__(       
+    def __init__(
         self,
         machines: Sequence[str] = ("pump", "fan", "valve", "slider"),
         dbs: Sequence[str] = ("0dB", "6dB", "min6dB"),
         fs_sync: float = 16000.0,
         clip_seconds: float = 10.0,
+        feature: str = "raw",
+        n_fft: int = 1024,
+        hop: int = 256,
+        n_mels: int = 64,
+        max_clips_per_label: Optional[int] = None,
+        append_deltas: bool = False,
+        machine_ids: Optional[Sequence[str]] = None,
+        channel_mode: str = "mean",
     ):
+        if feature not in ("raw", "logmel"):
+            raise ValueError(f"feature must be 'raw' or 'logmel'; got {feature!r}")
         self.machines = list(machines)
         self.dbs = list(dbs)
         self.fs_sync = fs_sync
         self.clip_seconds = clip_seconds
+        self.feature = feature
+        self.n_fft = n_fft
+        self.hop = hop
+        self.n_mels = n_mels
+        self.max_clips_per_label = max_clips_per_label
+        self.append_deltas = append_deltas
+        self.machine_ids = list(machine_ids) if machine_ids is not None else None
+        self.channel_mode = channel_mode
 
+    # -- public API ----------------------------------------------------------
     def load(self, path: str | Path) -> UnitDataset:
-        """Load all wav files under ``path`` matching configured machine/dB."""
+        """Load all wav files under ``path`` matching configured machine/ids/dB.
+
+        ``max_clips_per_label`` caps clips per (unit-group, label) — e.g. a
+        smoke run pays for 40 clips instead of 5500.
+        """
         try:
             import soundfile as sf  # lazy: optional dependency
         except ImportError as e:  # pragma: no cover
@@ -325,34 +358,94 @@ class MIMIILoader:
         if not path.is_dir():
             raise FileNotFoundError(str(path))
         dataset = UnitDataset()
+        counts: Dict[str, int] = {}
+        root_name = path.name
         for wav in sorted(path.rglob("*.wav")):
             rel = wav.relative_to(path)
             parts = rel.parts
-            machine = parts[0] if parts else ""
+            # machine dir: first path part if it names a configured machine,
+            # else the root directory itself (download layout: the root IS
+            # the machine, e.g. .../fan/id_00/normal/x.wav, possibly called
+            # with path=.../fan or path=.../fan/id_00).
+            machine = parts[0] if parts and parts[0] in self.machines else None
+            if machine is None and re.match(r"(fan|pump|valve|slider)$", root_name):
+                machine = root_name
+            if machine is None:
+                # root is .../<machine>/id_XX — machine is its parent dir
+                machine = path.parent.name if re.match(r"id_\d+", root_name) else root_name
             if machine not in self.machines:
                 continue
             name = wav.stem
-            if not any(db in name or db in str(rel) for db in self.dbs):
+            rel_str = str(rel)
+            # dB filter: only applies to archive-layout paths that carry a
+            # dB token; download-layout paths (no dB anywhere) always match.
+            if any(db in rel_str for db in ("0dB", "6dB", "min6dB")):
+                if not any(db in rel_str for db in self.dbs):
+                    continue
+            # label: from directory ('abnormal') or archive token ('anomaly')
+            is_anom = "abnormal" in parts or "anomaly" in name
+            # machine-instance id: an id_XX directory relative to root, or the
+            # root itself when called per-id (root = .../<machine>/id_XX).
+            group = machine
+            m = re.search(r"(id_\d+)", rel_str)
+            if m is None:
+                m = re.match(r"(id_\d+)$", root_name)
+            if m:
+                group = f"{machine}_{m.group(1)}"
+            if self.machine_ids is not None and not any(
+                mid in group for mid in self.machine_ids
+            ):
                 continue
-            is_anom = "anomaly" in name
-            audio, fs = sf.read(wav, dtype="float64")
+            key = f"{group}/{'abnormal' if is_anom else 'normal'}"
+            if self.max_clips_per_label is not None:
+                if counts.get(key, 0) >= self.max_clips_per_label:
+                    continue
+                counts[key] = counts.get(key, 0) + 1
+            audio, fs = sf.read(wav, dtype="float64", always_2d=True)
             if fs != self.fs_sync:
                 raise ValueError(
                     f"{wav}: expected fs={self.fs_sync}, got {fs} (resample upstream)"
                 )
             n = int(self.clip_seconds * self.fs_sync)
             audio = audio[:n]
-            labels = np.zeros(len(audio), dtype=np.int64)
+            if audio.shape[1] == 1:
+                audio = audio[:, 0]
+            T = audio.shape[0]
+            labels = np.zeros(T, dtype=np.int64)
             if is_anom:
                 labels[:] = 1
-            dataset.add(
-                UnitRecord(
-                    unit_id=f"mimii_{wav.stem}",
-                    signals=audio.reshape(-1, 1),
-                    timestamps=np.arange(len(audio), dtype=np.float64),
-                    anomaly_labels=labels,
+            if self.feature == "logmel":
+                from ..preprocessing.spectral import logmel_features
+
+                feats, _, _ = logmel_features(
+                    audio, fs, n_fft=self.n_fft, hop=self.hop,
+                    n_mels=self.n_mels, channel_mode=self.channel_mode,
                 )
-            )
+                if self.append_deltas:
+                    # first-order temporal deltas (dynamics): faults add
+                    # impulsive/sweep components static mel means average out
+                    d = np.diff(feats, axis=0, prepend=feats[:1])
+                    feats = np.concatenate([feats, d], axis=1)
+                # timestamps = frame indices (same convention as
+                # synthetic_like): runners pass Preprocessor(fs_sync=1.0),
+                # so the sync grid is the identity on frames.
+                dataset.add(
+                    UnitRecord(
+                        unit_id=f"mimii_{group}_{'abnormal' if is_anom else 'normal'}_{name}",
+                        signals=feats,
+                        timestamps=np.arange(len(feats), dtype=np.float64),
+                        anomaly_labels=np.full(len(feats), int(is_anom), dtype=np.int64),
+                    )
+                )
+            else:
+                dataset.add(
+                    UnitRecord(
+                        unit_id=f"mimii_{group}_{'abnormal' if is_anom else 'normal'}_{name}",
+                        signals=audio if audio.ndim == 2 else audio.reshape(-1, 1),
+                        timestamps=np.arange(T, dtype=np.float64) / self.fs_sync,
+                        anomaly_labels=labels,
+                    )
+                )
         if len(dataset) == 0:
             raise FileNotFoundError(
                 f"no MIMII wav files matched under {path} for machines={self.machines}"

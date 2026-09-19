@@ -8,6 +8,38 @@ from typing import Dict, List, Sequence, Tuple
 import numpy as np
 from scipy import stats as sps
 
+from .evaluator import auroc
+
+
+def auroc_bootstrap_ci(
+    scores: Sequence[float],
+    labels: Sequence[int],
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> Tuple[float, float, float]:
+    """Clip-level bootstrap CI for AUROC (units = clips, PRD §23 item 4/9).
+
+    Resamples clips with replacement, recomputes AUROC per replicate,
+    returns (point_auroc, lo, hi). Degenerate replicates (one class absent)
+    are skipped.
+    """
+    scores = np.asarray(scores, dtype=np.float64)
+    labels = np.asarray(labels, dtype=int)
+    point = auroc(scores, labels)
+    rng = np.random.default_rng(seed)
+    n = len(scores)
+    vals = []
+    for _ in range(n_boot):
+        idx = rng.integers(0, n, size=n)
+        s, l = scores[idx], labels[idx]
+        if (l == 1).any() and (l == 0).any():
+            vals.append(auroc(s, l))
+    if not vals:
+        return point, float("nan"), float("nan")
+    lo, hi = np.quantile(vals, [alpha / 2, 1 - alpha / 2])
+    return point, float(lo), float(hi)
+
 
 def per_unit_metrics(
     preds: Sequence[np.ndarray],

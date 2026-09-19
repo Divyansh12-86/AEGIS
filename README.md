@@ -54,12 +54,19 @@ egpm/
 ├── .gitignore
 ├── requirements.txt
 │
-├── data/                        # dataset loaders, unit-level split logic
-│   ├── loaders.py               # UnitRecord/UnitDataset, NCMAPSSLoader, MIMIILoader
+├── experiments/                    # Deliverable E, ablations, MIMII harness
+│   ├── runner.py
+│   ├── ablation_arms.py
+│   ├── heads_run.py
+│   ├── readout_study.py
+│   └── mimii_run.py               # MIMII fan real-data experiment (5 arms x 4 ids x 3 seeds)
+├── interpretability/             # §24 interpretability suite
+├── preprocessing/
+│   ├── preprocessor.py           # sync/impute/window/normalize (causal)
+│   └── spectral.py               # causal log-mel front-end (STFT + Slaney mel, verbatim for MIMII)
+├── data/                         # dataset loaders, unit-level split logic
+│   ├── loaders.py                # UnitRecord/UnitDataset, NCMAPSSLoader, MIMIILoader
 │   └── split_builder.py
-│
-├── preprocessing/                # sync, impute, window, normalize (deterministic)
-│   └── preprocessor.py
 │
 ├── encoder/                      # causal conv stack (+ optional attention)
 │   └── sensor_encoder.py
@@ -120,7 +127,7 @@ egpm/
     └── test_interpretability.py         # §24 suite: coherence/stability/temporal/faithfulness
 ```
 
-**Implementation status:** the EGPM MVP (PRD §31 milestones M1–M11) is implemented and tested — 223 tests passing. The `Aegis_prd (1).md` file is the authoritative PRD. N-CMAPSS is **wired**: `NCMAPSSLoader` reads the real DS01/DS02 `.h5` schema (verified: `A_*=[unit, cycle, Fc, hs]`, `W_*` ops, `X_s_*` sensors, `Y_*` ground-truth RUL) and a full pipeline smoke run (load → split → preprocess → VQ → HSMM EM → heads → schema-valid explanation) passes on the real files. Real-data experiments are done for N-CMAPSS: tuned 3-seed RUL runs, A–F ablation with unit-level bootstrap CIs + Wilcoxon harness, CNN-RUL baseline, M7 fault/health heads, cross-dataset transfer, readout study, and the §24 interpretability suite (see Results). Remaining for Definition of Done (§32): wiring MIMII wavs (loader + synthetic contract exist, wav files not on disk).
+**Implementation status:** the EGPM MVP (PRD §31 milestones M1–M11) is implemented and tested — 237 tests passing (223 core + 14 MIMII-wiring, incl. a skipped-when-absent real-file row). The `Aegis_prd (1).md` file is the authoritative PRD. N-CMAPSS is **wired**: `NCMAPSSLoader` reads the real DS01/DS02 `.h5` schema (verified: `A_*=[unit, cycle, Fc, hs]`, `W_*` ops, `X_s_*` sensors, `Y_*` ground-truth RUL) and a full pipeline smoke run (load → split → preprocess → VQ → HSMM EM → heads → schema-valid explanation) passes on the real files. MIMII is **wired end-to-end**: `MIMIILoader` (download layout `fan/id_XX/{normal,abnormal}/`) → causal log-mel (per-band mean+std over 8 channels + deltas) → unit-level split → encoder/VQ/HSMM training on normal clips only → AUROC/AUPRC across 5 arms × 4 machine IDs × 3 seeds, plus the §24 interpretability suite per ID. Per-clip Wilcoxon against the primary arm is now powered (n≈500 clips) — no more underpowered NaN p-values.
 
 ## Datasets
 
@@ -173,6 +180,34 @@ For the real experiment, load MIMII wav files via `egpm.data.MIMIILoader` (needs
 
 Full staged training (encoder/VQ → HSMM induction) is orchestrated by `egpm/training/trainer.py`.
 
+## Results (M11, real MIMII fan, 4 machine IDs × 3 seeds)
+
+Normal-only training (70/15/15 clip split of normal clips; normalization fit on
+the same train-normal clips); eval = held-out normal clips + all abnormal clips,
+per machine ID. Causal log-mel (per-band mean/std across the 8 mics, plus
+first-order deltas), 16-frame windows (~0.26 s per event token). Harness:
+`scripts/mimii_driver.py` → `egpm.experiments.mimii_run.run_mimii_fan`.
+Per-ID JSONs: `mimii_fan_<id>_3seeds.json`, `mimii_fan_<id>_interpretability.json`.
+
+| Arm (AUROC, mean±std over 3 seeds) | id_00 | id_02 | id_04 | id_06 | macro |
+|---|---|---|---|---|---|
+| continuous AE (baseline i) | 0.530±0.006 | 0.681±0.015 | 0.662±0.005 | 0.678±0.008 | **0.638** |
+| VQ pooled unigram (A2) | 0.474±0.007 | 0.750±0.022 | 0.671±0.007 | 0.608±0.053 | **0.626** |
+| VQ + first-order Markov (baseline ii) | 0.457±0.018 | 0.391±0.028 | 0.337±0.012 | 0.259±0.020 | **0.361** |
+| VQ + HSMM (baseline iii / primary) | 0.481±0.010 | 0.517±0.202 | 0.649±0.081 | 0.587±0.180 | **0.559** |
+| continuous-HSMM on embeddings (A1) | 0.565±0.025 | 0.664±0.056 | 0.755±0.007 | 0.804±0.039 | **0.697** |
+
+Interpretability suite on the same tokenization (per ID): silhouette ~0 (weak but
+consistent), matched usage overlap across seeds 0.66–0.93 (stability), cross-unit
+JSD 0.02–0.05, faithfulness ≠ 0 for all IDs, rank correlation
+between anomaly score and the binary label ρ ∈ [−0.06, 0.54]. Reported honestly
+as discriminative power only (PRD Decision 9), not faithfulness.
+
+Reading the table: the MARKOV arm (no states) collapses on real fan sound; the
+HSMM is stable above it but still below AE/A1 — a hypothesis-clean negative
+result on this dataset. Deliverable E's comparison (AE vs row 4) and ablations
+A1/A2 are answered with real numbers instead of synthetic surrogates.
+
 ## Results (M11, real N-CMAPSS, unit-level stats per PRD §23)
 
 Controlled A–F ablation + CNN-RUL baseline, 3 seeds, unit-level splits (6/2/2), per-unit RMSE with bootstrap 95% CIs (`ablation_report_DS01.json`, `ablation_report_DS02.json`):
@@ -221,17 +256,17 @@ All 10 first tasks (§31D) and milestones M1–M10 are **implemented and tested*
 | M3 | VQ event discovery (perplexity stable, no collapse) | ✅ |
 | M4 | HSMM (EM converges; forward-algorithm test passes) | ✅ |
 | M5 | RUL head (synthetic closed-form test passes) | ✅ (wired on real N-CMAPSS; tuned numbers pending) |
-| M6 | Anomaly head (validation-only threshold; AUROC produced) | ✅ (real MIMII numbers pending dataset) |
+| M6 | Anomaly head (validation-only threshold; AUROC produced) | ✅ real MIMII AUROC/AUPRC per machine ID in `mimii_fan_<id>_3seeds.json`; thresholds from validation-normal clips only |
 | M7 | Fault + health heads | ✅ tuned 3-seed real-data runs with CIs: fault acc 1.0 [1.0, 1.0] (run-level hs is 2-class — trivially separable); health Spearman vs hs 0.21/0.10 DS01/DS02 (honest weak signal) |
 | M8 | Explanation object (schema-valid output) | ✅ |
 | M9 | Core baselines (all five under identical contracts) | ✅ CNN-RUL run on real DS01+DS02 with CIs (34.0/28.9 RMSE); LSTM/SAX/CBM tested on synthetic; OmniAnomaly Phase-2 |
-| M10 | Essential ablations (A1, A2, A2b, A4 with ≥3 seeds) | ✅ real-data A–F arms + CIs + Wilcoxon harness (DS01/DS02) |
-| M11 | Evaluation + write-up | ✅ unit-level stats + bootstrap CIs + paired Wilcoxon wired; real-data results table above; MIMII runs pending dataset wiring |
+| M10 | Essential ablations (A1, A2, A2b, A4 with ≥3 seeds) | ✅ real-data A–F arms + CIs + Wilcoxon harness (DS01/DS02) **and** real MIMII Deliverable-E + A1/A2 in `egpm/experiments/mimii_run.py` |
+| M11 | Evaluation + write-up | ✅ unit-level stats + bootstrap CIs + paired Wilcoxon wired; real-data results tables for N-CMAPSS (RUL) and MIMII fan (anomaly) above |
 
 **Definition of done** has three separate bars, all required:
-1. **Engineering completion** — ✅ full pipeline runs end-to-end, all 222 tests (mathematical invariants included) pass, runs are reproducible from seeds+config. *Remaining: wire real MIMII wavs (N-CMAPSS is wired and smoke-tested on the real files).*
-2. **Research completion** — ✅ real-data runs with ≥3 seeds, per-unit bootstrap CIs, and the paired-Wilcoxon harness (`egpm.evaluation.stats`), reported for DS01/DS02. Wilcoxon p-values are honestly NaN (2 test units → underpowered); the harness, aggregation, and CI machinery are complete and will produce p-values as soon as a dataset with ≥6 test units is run.
-3. **Experimental completion** — ✅ the §24 interpretability suite is **implemented and run**: `egpm.interpretability.run_interpretability_suite()` reports all six metrics (coherence, stability, cross-unit consistency, temporal validity, faithfulness, rank correlation) with pass-signal tests on constructed ground truth; run on real N-CMAPSS DS01+DS02. *Remaining: MIMII run pending dataset wiring.*
+1. **Engineering completion** — ✅ full pipeline runs end-to-end; all 237 tests pass (mathematical invariants included); runs reproducible from seeds+config; real MIMII wavs wired end-to-end (`MIMIILoader` + causal log-mel front-end + PRD-conforming splits).
+2. **Research completion** — ✅ real-data runs with ≥3 seeds, per-unit bootstrap CIs, and the paired-Wilcoxon harness (`egpm.evaluation.stats`), reported for DS01/DS02 (RUL) and id_00..id_06 (MIMII fan anomaly). On MIMII the Wilcoxon finally has powered samples (n≈500 clips per arm-pair, real p-values, e.g. continuous_hsmm vs primary on id_00 p min 2.2e-05).
+3. **Experimental completion** — ✅ the §24 interpretability suite runs on real MIMII (artifact `mimii_fan_<id>_interpretability.json`), alongside the N-CMAPSS run from before.
 
 ## Testing
 

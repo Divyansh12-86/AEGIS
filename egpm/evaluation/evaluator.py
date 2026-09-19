@@ -19,6 +19,32 @@ def auroc(scores: np.ndarray, labels: np.ndarray) -> float:
     return float((ranks[pos].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
+def auprc(scores: np.ndarray, labels: np.ndarray) -> float:
+    """Average precision (step-integral PR area, sklearn-compatible).
+
+    AP = sum over distinct thresholds t (descending) of (R_prev - R_t) * P_t,
+    where selection at t is score >= t (ties grouped into one threshold) and
+    a (R=0, P=1) sentinel closes the curve. No sklearn dependency; verified
+    equal to sklearn's average_precision_score including tie handling.
+    """
+    scores = np.asarray(scores, dtype=np.float64)
+    labels = np.asarray(labels, dtype=int)
+    n_pos = int((labels == 1).sum())
+    if n_pos == 0 or (labels == 0).sum() == 0:
+        raise ValueError("AUPRC needs both classes present")
+    prec, rec = [], []
+    for t in np.unique(scores):  # ascending: lowest threshold first
+        sel = scores >= t
+        tp = int(((labels == 1) & sel).sum())
+        fp = int(((labels == 0) & sel).sum())
+        prec.append(tp / (tp + fp))
+        rec.append(tp / n_pos)
+    prec.append(1.0)
+    rec.append(0.0)  # sentinel: empty selection
+    prec, rec = np.asarray(prec), np.asarray(rec)
+    return float(max(0.0, -np.sum(np.diff(rec) * prec[:-1])))
+
+
 def f1_at_threshold(
     scores: np.ndarray, labels: np.ndarray, threshold: float
 ) -> Tuple[float, float, float]:
