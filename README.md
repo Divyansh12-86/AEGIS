@@ -253,6 +253,21 @@ TSMixer on frozen event/state features is the strongest readout on both datasets
 
 **§24 interpretability on N-CMAPSS** (`interpretability_ds01/ds02.json`): coherence silhouette 0.02/−0.03 (weak), stability overlap 0.91/0.93, cross-unit JSD 0.22/0.48, temporal detection rate 1.0 (lag 2.0/1.4 windows). Faithfulness and rank-correlation are NaN by construction (no anomalous runs in these splits) — reported, not hidden.
 
+## Where we have the edge vs where we need improvement
+
+**Edge (evidence-backed):**
+- **Duration modeling earns its complexity (N-CMAPSS RUL):** E (VQ+HSMM + ridge) 19.9/18.5 RMSE beats every simpler arm A–D (22.4–25.4) and the CNN-RUL baseline by ~10+ RMSE (34.0/29.9) under identical contracts — the event/state bottleneck is not the accuracy bottleneck.
+- **Frozen features beat raw sensors:** TSMixer readout on event/state features (19.3/18.8) beats the raw-sensor TSMixer control (21.7/26.0) — the representation carries the signal, not just head capacity.
+- **Transfer survives vocab shift:** cross-dataset RUL lands within ~2 RMSE of in-domain despite token JSD ~0.4–0.5.
+- **Structure beats no-structure:** on MIMII the Markov arm (no states) collapses to 0.361 macro while the HSMM stays at 0.559; EM restarts collapse seed variance (3.9→0.5 std); token stability 0.66–0.93 and faithfulness ≠ 0 on all fan IDs.
+
+**Needs improvement (honest gaps):**
+- **Discretization hurts on fan audio:** primary HSMM (0.559 macro) loses to continuous AE (0.638) and continuous-HSMM A1 (0.697) — the VQ bottleneck discards acoustic detail the task needs. Late-fusion (continuous head + grammar explanation) is the open question.
+- **id_00 near chance for all arms** (best 0.565) — that machine's fault signature is invisible to every representation tried.
+- **Health index is a weak signal** (Spearman 0.21/0.10) — the fixed ordinal prior fails; needs the learned-weights experiment (§14 option b).
+- **Native phase-type RUL loses to ridge** (43.5 vs 19.9 DS01) and absorbing calibration hurts DS02 (−4.5 RMSE) — the probabilistic RUL story is unfinished.
+- **Weak event coherence** (silhouette ~0), **underpowered N-CMAPSS significance** (2 test units by construction), **fault 1.0 is a wiring check** (2-class hs), not discrimination.
+
 ## Pending (from `REMAINING_PLAN.md`, PRD-open items)
 
 - [ ] **Health-index a/b (§14)**: learned monotone weights vs fixed ordinal prior, decided on validation Spearman.
