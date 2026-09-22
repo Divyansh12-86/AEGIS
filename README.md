@@ -230,6 +230,46 @@ Key findings:
 - Wilcoxon significance is underpowered by construction (2 independent test units per dataset) — stated explicitly in the reports instead of hidden; CIs are wide for the same reason. Cross-dataset transfer (`exp3_cross_dataset.json`) and readout study (`readout_study_DS01/DS02.json`) provide the complementary evidence.
 - **M7 heads (`heads_report_DS01/DS02.json`)**: fault head hits 1.0 accuracy on run-level hs (both datasets) — the auxiliary label is 2-class at run level and trivially separable, so it validates the wiring, not discrimination power. Health-index Spearman vs hs is weak (DS01 0.21 [-0.18, 0.60], DS02 0.10 [0.06, 0.14]) — the fixed ordinal severity prior over HSMM states only loosely tracks the auxiliary label; this is an honest negative result for §14's default option (a), pointing at the learned-weights option (b) as Phase-2.
 
+### More results (same artifacts, not re-run)
+
+**RUL readout study** (`readout_study_DS01/DS02.json`, RMSE mean over 3 seeds, frozen EGPM features):
+
+| Head | DS01 | DS02 |
+|---|---|---|
+| ridge (reference) | 25.0 | 21.6 |
+| GRU-32 | 22.9 | 27.4 |
+| TCN | 22.6 | 20.4 |
+| **TSMixer** | **19.3** | **18.8** |
+| raw-sensor TSMixer (ceiling ref) | 21.7 | 26.0 |
+| encoder-z TSMixer (info-loss probe) | 22.2 | 25.6 |
+
+TSMixer on frozen event/state features is the strongest readout on both datasets and beats the raw-sensor control — the bottleneck features carry the signal, not just the head capacity.
+
+**Native phase-type RUL vs ridge readout** (`tuned_run_ds01/ds02.json` vs ablation E): native MC-free phase-type RUL gives 43.5±2.9 (DS01) / 32.7±1.9 (DS02) RMSE, well above the ridge-over-HSMM-features readout (E: 19.9/18.5). The HSMM state representation helps; the closed-form phase-type expectation does not beat a learned readout on top of it.
+
+**Cross-dataset transfer** (`exp3_cross_dataset.json`, 3 seeds): train DS01→test DS02 RMSE 20.5±1.0 (token JSD 0.49); train DS02→test DS01 RMSE 15.6. Event vocabulary shifts substantially across datasets (JSD ~0.4–0.5) yet RUL transfers within ~2 RMSE of in-domain E — partial evidence for event-code universality, limited by 2 test units per target.
+
+**EM restart sweep** (`exp2_em_restart_sweep.json`, DS01 E-arm RMSE): 1 restart 18.3±3.9, 3 restarts 19.9±2.6, 5 restarts 19.8±2.7, 10 restarts 18.7±0.5. More restarts do not lower mean RMSE but collapse seed variance — restarts buy stability, not accuracy.
+
+**§24 interpretability on N-CMAPSS** (`interpretability_ds01/ds02.json`): coherence silhouette 0.02/−0.03 (weak), stability overlap 0.91/0.93, cross-unit JSD 0.22/0.48, temporal detection rate 1.0 (lag 2.0/1.4 windows). Faithfulness and rank-correlation are NaN by construction (no anomalous runs in these splits) — reported, not hidden.
+
+## Pending (from `REMAINING_PLAN.md`, PRD-open items)
+
+- [ ] **Health-index a/b (§14)**: learned monotone weights vs fixed ordinal prior, decided on validation Spearman.
+- [ ] **Multi-task training + A3**: joint head training vs single-task copies on identical splits.
+- [ ] **Cross-dataset follow-up**: use exp3 harness to probe event-code universality further.
+- [ ] **MIMII temporal validity**: onset-proxy (first-detection-lag) run since true onsets don't exist.
+- [ ] **Full MIMII baselines**: OmniAnomaly proper (flagged Phase-2), CBM on fan (exists, synthetic-only so far).
+- [ ] **Richer fault target**: N-CMAPSS flight-envelope variants (hs is 2-class at run level — wiring only).
+- [ ] **MC RUL intervals**: `simulate_rul()` in `phase_type_rul.py` + `interval_coverage_95` in ablation reports.
+- [ ] **Streaming anomaly**: fixed-lag Viterbi re-decode + AUROC-vs-latency on MIMII.
+- [ ] **Config versioning**: tiny `configs/` + `config_hash` in JSONs (no Hydra until 2 configs exist).
+- [ ] **ToyADMOS generalization**: frozen fan grammar, cross-domain AUROC only.
+- [ ] **Air-compressor data**: multi-class fault-head test if dataset becomes available.
+- [ ] **Engineering**: parallel per-(id, seed) driver, memory-profile runs, `docs/mimii_decisions.md` memo.
+
+Explicitly not building unless evidence demands it: full OmniAnomaly port, hierarchical PCFG, LLM rendering layer, edge deployment, production streaming.
+
 ## Development Plan
 
 All 10 first tasks (§31D) and milestones M1–M10 are **implemented and tested**. Current status:
