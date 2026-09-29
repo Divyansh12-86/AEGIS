@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -227,6 +227,52 @@ class Trainer:
         stats.wall_clock_s = time.time() - t0
         self.stats.append(stats)
         return stats
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def stage3_joint(
+        heads: Dict[str, nn.Module],
+        task_losses: Dict[str, Callable[[nn.Module], Optional[torch.Tensor]]],
+        steps: int = 200,
+        lr: float = 1e-3,
+        weights: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, float]:
+        """Stage 3 (PRD §15/§16): joint fine-tuning of prediction heads on the
+        frozen EGPM representation under the masked composite loss.
+
+        heads: task name -> module. task_losses: task name -> closure
+        (head) -> scalar loss, or None when the task's labels are absent —
+        that's the PRD §15 missing-label mask. Weights default to 1.0
+        (§15: start equal). Encoder/VQ/HSMM stay frozen: full gradient
+        through the forward algorithm is §15's research-grade extension;
+        this is the head-coupling step ablation A3 compares against
+        independent single-task copies.
+
+        Returns final per-task losses (tasks never unmasked are absent)."""
+        weights = weights or {}
+        params = [p for h in heads.values() for p in h.parameters()]
+        if not params:
+            raise ValueError("stage3_joint: no trainable heads")
+        opt = torch.optim.AdamW(params, lr=lr)
+        final: Dict[str, float] = {}
+        for _ in range(steps):
+            opt.zero_grad()
+            total: Optional[torch.Tensor] = None
+            final = {}
+            for name, fn in task_losses.items():
+                if name not in heads:
+                    continue
+                loss = fn(heads[name])
+                if loss is None:
+                    continue  # masked: labels absent on this dataset
+                weighted = weights.get(name, 1.0) * loss
+                total = weighted if total is None else total + weighted
+                final[name] = float(loss.detach())
+            if total is None:
+                break  # everything masked — nothing to train
+            total.backward()
+            opt.step()
+        return final
 
     # ------------------------------------------------------------------
     def pipeline_outputs(

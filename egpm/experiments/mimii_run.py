@@ -10,6 +10,9 @@ Arms under identical contracts (PRD §21 fair-comparison):
   vq_markov          — VQ tokens scored by first-order Markov (baseline ii)
   vq_hsmm            — full HSMM surprisal scorer (baseline iii / primary)
   continuous_hsmm    — Gaussian-emission HSMM on encoder embeddings (A1)
+  grammarviz         — SAX (fixed, non-learned) + Sequitur n-gram novelty (§21)
+  concept_bottleneck — k-means concept histograms + nearest-normal distance
+                       (§21 CBM, no temporal structure)
 
 Reports AUROC/AUPRC per arm per seed, clip-level bootstrap CIs, and paired
 Wilcoxon (per-clip correctness at the shared HSMM threshold) vs the primary
@@ -94,7 +97,8 @@ def run_mimii_fan_one(
     if verbose:
         print(f"[{id_token}] {len(normal_ids)} normal / {len(anom_ids)} abnormal clips", flush=True)
 
-    arms = ["continuous_AE", "pooled_events", "vq_markov", "vq_hsmm", "continuous_hsmm"]
+    arms = ["continuous_AE", "pooled_events", "vq_markov", "vq_hsmm",
+            "continuous_hsmm", "grammarviz", "concept_bottleneck"]
     per_seed_auroc: Dict[str, List[float]] = {a: [] for a in arms}
     per_seed_auprc: Dict[str, List[float]] = {a: [] for a in arms}
     per_clip_correct: Dict[str, Dict[int, np.ndarray]] = {a: {} for a in arms}  # arm -> seed -> [0/1] per eval clip
@@ -205,6 +209,51 @@ def run_mimii_fan_one(
         a1.fit_em(emb_train, n_states=n_states, d_max=d_max,
                   max_iter=a1_em_iter, min_iter=2, tol=1e-3, seed=seed)
 
+        # ---- GrammarViz (§21 symbolic baseline): FIXED SAX discretization
+        # (no learned encoder) + Sequitur grammar; novelty vs train n-grams.
+        # Channels are mean-pooled into 16 groups first (adjacent mel bands
+        # correlate heavily; SAX per raw channel is 64x the cost for the same
+        # information — documented in the report note).
+        from ..baselines.grammarviz import SAXDiscretizer, GrammarVizScorer
+        sax = SAXDiscretizer(word_length=4, alphabet_size=4)
+        gv = GrammarVizScorer(ngram=3)
+        gv_words: Dict[str, List[List[str]]] = {}
+
+        def sax_words(ids):
+            out = []
+            for w in wins(ids):
+                N, W, C = w.shape
+                g = min(16, C)
+                red = w.reshape(N, W, g, C // g).mean(-1)
+                out.append(sax.transform_run(red, np.ones_like(red)))
+            return out
+
+        for split_name, split_ids in (("train", tr_norm), ("val", va_norm),
+                                      ("eval_norm", eval_norm), ("eval_anom", eval_anom)):
+            gv_words[split_name] = sax_words(split_ids)
+        gv.fit([w for run in gv_words["train"] for w in run])
+
+        # ---- Concept Bottleneck (§21 CBM): k-means concepts on raw windows,
+        # anomaly = distance to nearest train-normal concept histogram.
+        from ..baselines.concept_bottleneck import WindowKMeans, ConceptBottleneck
+        km = WindowKMeans(n_clusters=n_codes, n_iter=10, seed=seed)
+        sub_idx = rng.choice(Xtr.shape[0], min(1500, Xtr.shape[0]), replace=False)
+        km.fit(Xtr[sub_idx].reshape(len(sub_idx), -1).numpy())
+
+        def cbm_hist(ids):
+            hists = []
+            for w in wins(ids):
+                ids_w = km.assign(w.reshape(len(w), -1))
+                hists.append(ConceptBottleneck.histogram(ids_w, n_codes))
+            return np.array(hists)
+
+        cbm_train_h = cbm_hist(tr_norm)
+
+        def cbm_score(hists):
+            # L1 distance to the NEAREST train-normal concept histogram
+            d = np.abs(hists[:, None, :] - cbm_train_h[None, :, :]).sum(-1)
+            return d.min(axis=1)
+
         def score_all(arm):
             if arm == "continuous_AE":
                 return ae_score(eval_norm), ae_score(eval_anom)
@@ -222,6 +271,11 @@ def run_mimii_fan_one(
                 ev_n, ev_a = embed_runs(eval_norm), embed_runs(eval_anom)
                 s = lambda rs: np.array([-a1.log_likelihood(z) / len(z) for z in rs])
                 return s(ev_n), s(ev_a)
+            if arm == "grammarviz":
+                s = lambda runs: np.array([gv.score_run(r).mean() for r in runs])
+                return s(gv_words["eval_norm"]), s(gv_words["eval_anom"])
+            if arm == "concept_bottleneck":
+                return cbm_score(cbm_hist(eval_norm)), cbm_score(cbm_hist(eval_anom))
             raise ValueError(arm)
 
         eval_labels = np.concatenate([np.zeros(len(eval_norm)), np.ones(len(eval_anom))])
@@ -251,6 +305,10 @@ def run_mimii_fan_one(
                 va_s = np.array([-log_unigram[v].mean() for v in va_toks])
             elif arm == "vq_markov":
                 va_s = np.array([mm.score_run(v).mean() for v in va_toks])
+            elif arm == "grammarviz":
+                va_s = np.array([gv.score_run(r).mean() for r in gv_words["val"]])
+            elif arm == "concept_bottleneck":
+                va_s = cbm_score(cbm_hist(va_norm))
             else:  # continuous_hsmm
                 va_s = np.array([-a1.log_likelihood(z) / len(z) for z in emb_va])
             arm_thr = float(np.percentile(va_s, 99.0))

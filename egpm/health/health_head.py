@@ -69,3 +69,39 @@ class HealthHead(nn.Module):
         w = self.weights
         diffs = w[1:] - w[:-1]  # must be <= 0 (health decreasing toward failure)
         return torch.relu(diffs + 0.01).sum()
+
+
+def fit_learned_weights(
+    head: HealthHead,
+    beliefs_list: list,
+    labels_list: list,
+    steps: int = 150,
+    lr: float = 0.05,
+    mono_lambda: float = 1.0,
+    seed: int = 0,
+) -> None:
+    """Fit option-(b) weights against integer health-state labels (PRD §14).
+
+    Target y = (max_hs - hs) / (max_hs - min_hs), with extrema computed over
+    the TRAIN labels passed in only (never eval). Regression on the belief
+    weighted sum + monotonicity penalty; bounds [0, 1] emerge naturally since
+    head weights are clamped in-place after fitting.
+    """
+    if not head.learn_weights:
+        raise ValueError("head must be constructed with learn_weights=True")
+    torch.manual_seed(seed)
+    X = torch.cat([torch.as_tensor(b, dtype=torch.float32) for b in beliefs_list])
+    ys = np.concatenate([np.asarray(l, dtype=np.float64) for l in labels_list])
+    lo, hi = float(ys.min()), float(ys.max())
+    if hi <= lo:
+        return  # degenerate (single hs class in train) — leave prior weights
+    y = torch.as_tensor((hi - ys) / (hi - lo), dtype=torch.float32)
+    opt = torch.optim.Adam(head.parameters(), lr=lr)
+    for _ in range(steps):
+        opt.zero_grad()
+        h = head(X)
+        loss = torch.nn.functional.mse_loss(h, y) + mono_lambda * head.monotonicity_penalty()
+        loss.backward()
+        opt.step()
+    with torch.no_grad():
+        head.weights.clamp_(0.0, 1.0)

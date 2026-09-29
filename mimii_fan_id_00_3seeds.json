@@ -87,6 +87,36 @@
         0.6761049811182942,
         0.6983107210727928
       ]
+    },
+    "grammarviz": {
+      "AUROC_mean": 0.15388888888888888,
+      "AUROC_std": 0.013076224773266473,
+      "AUROC_per_seed": [
+        0.16833333333333333,
+        0.13666666666666666,
+        0.15666666666666668
+      ],
+      "AUPRC_mean": 0.49930742456209204,
+      "AUPRC_per_seed": [
+        0.4973087227103301,
+        0.5020170776643991,
+        0.4985964733115469
+      ]
+    },
+    "concept_bottleneck": {
+      "AUROC_mean": 0.4323191823899371,
+      "AUROC_std": 0.009016414804575438,
+      "AUROC_per_seed": [
+        0.43584119496855345,
+        0.44117138364779873,
+        0.41994496855345914
+      ],
+      "AUPRC_mean": 0.573179355793869,
+      "AUPRC_per_seed": [
+        0.5770023195048769,
+        0.5741150833206753,
+        0.5684206645560547
+      ]
     }
   },
   "wilcoxon_vs_primary": {
@@ -113,6 +143,18 @@
       "max_p": 0.7054569861112734,
       "min_p": 2.2090496998585445e-05,
       "n_clips": 512
+    },
+    "grammarviz": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 1.0,
+      "min_p": 0.31731050786291415,
+      "n_clips": 512
+    },
+    "concept_bottleneck": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 1.0,
+      "min_p": 0.4142161782425253,
+      "n_clips": 512
     }
   },
   "primary_thresholds": {
@@ -120,6 +162,6 @@
     "1": 3.8569937083290635,
     "2": 3.4387992268397527
   },
-  "wall_clock_s": 6651.792569160461,
+  "wall_clock_s": 9662.68032693863,
   "notes": "normal-only training (70/15/15 clip split of normals, train-normal z-stats); eval = held-out normals + all abnormal clips; validation-only thresholds (99th pct); arms share tokenization/preprocessing per seed."
 }

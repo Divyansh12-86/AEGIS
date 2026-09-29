@@ -38,8 +38,16 @@
       "spearman": -0.19541885166424877,
       "p_value": 0.0011011246523797286,
       "n": 276
+    },
+    "temporal_proxies": {
+      "detection_rate": 0.2125,
+      "mean_lag": 16.0,
+      "median_lag": 12.0,
+      "n_anomalous_clips": 80,
+      "threshold_percentile": 99.0,
+      "note": "proxy, NOT ground-truth onset alignment: MIMII anomalous clips are anomalous from t=0, so the first over-threshold window is a pseudo-onset. Threshold = 99th pct of normal eval windows (PRD \u00a711 thresholding convention)."
     }
   },
-  "wall_clock_s": 368.22612500190735,
+  "wall_clock_s": 339.074285030365,
   "notes": "All six PRD \u00a724 metrics; fitting on train/val units only; labels consumed for evaluation only (PRD \u00a723)."
 }

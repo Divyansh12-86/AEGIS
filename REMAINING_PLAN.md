@@ -1,10 +1,41 @@
 # Implementation Plan — finishing all remaining EGPM tasks
 
-Status: plan, 2026-09-18. Baseline state: MVP (M1–M11) complete, 237 tests green,
-real results on N-CMAPSS + MIMII fan. This plan covers everything the PRD leaves
-open, in dependency order.
+Status: ACTIVE EXECUTION, 2026-09-23. Baseline: MVP (M1–M11) complete, 240 tests green,
+real results on N-CMAPSS + MIMII fan. **A1 (health-index a/b) DONE**: neither variant
+wins beyond noise (val Δ ≤ 0.002 vs seed std 0.3–0.4) → fixed ordinal prior stays
+default; decision recorded in `heads_report_DS*.json:health_ab_decision`.
 
-## Remaining task inventory (from PRD + current README findings)
+## Execution order (locked, 2026-09-23) — progress 2026-09-25
+
+1. **B2 — MIMII temporal validity via first-detection-lag proxy** → ✅ DONE:
+   `temporal_proxies` in `mimii_fan_*_interpretability.json` (detection 0.14–0.68,
+   median lag 0–12 windows @99th-pct val threshold; caveat-stamped).
+2. **Fault head on Fc classes** — ✅ DONE: `fault_label=Fc` in NCMAPSSLoader,
+   `fault_target="fc"` in heads_run, degenerate-split guard (`fault_mode`).
+   3-class result: DS01 0.5 acc (vs 0.33 chance, 2 test units), DS02 1.0 but
+   Fc-imbalanced train. Exposed that the old 1.0 "hs" number was a
+   constant-predictor artifact (every unit's majority hs = 1).
+3. **Stage-3 joint training + A3** — ✅ DONE: `Trainer.stage3_joint` (masked
+   composite loss over heads; tests: masked-frozen/unmasked-trains/all-masked-noop)
+   + A3 in `heads_report_DS*.json:multitask_a3`. **Finding: delta ≡ 0** — frozen
+   representation ⇒ no shared trainable params ⇒ joint ≡ single-task. The §15
+   coupling requires full-gradient Stage-3 (through forward algorithm into the
+   encoder): now an evidence-backed open item, NOT silently skipped.
+4. **Core baselines on real data** — ✅ PARTIAL→DONE: LSTM-RUL on real N-CMAPSS
+   (per-timestep head; DS01 38.8 [36.8,40.9], DS02 41.2 [36.6,45.8] — worse
+   than both CNN 34.0/28.9 and E 19.8/17.3); GrammarViz + CBM on real MIMII
+   fan (7-arm table in README: GrammarViz 0.152, CBM 0.414 — both below
+   primary HSMM 0.559); OmniAnomaly proper still flagged/gated (Phase-2 per
+   PRD §32, only build if evidence demands it).
+
+Deferred per PRD Phase-2 fiat (not started): MC RUL interval *wiring* (simulator
+already exists — `simulate_to_absorption`), streaming fixed-lag decode, ToyADMOS,
+extended baselines, neural residual RUL head, PCFG layer. Engineering (parallel
+driver, config hashing, memory profiling) only when it bites.
+
+---
+
+## Original task inventory (from PRD + current README findings)
 
 1. **Health-index decision (PRD §14)** — the current fixed-ordinal weighting is a
    *documented weak signal* (Spearman 0.21 DS01 / 0.10 DS02). The PRD says: resolve

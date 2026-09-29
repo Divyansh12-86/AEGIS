@@ -18,6 +18,7 @@ from egpm.interpretability import (
     hungarian_state_match,
     cross_unit_consistency,
     temporal_validity,
+    temporal_onset_proxy,
     explanation_faithfulness,
     anomaly_score_rank_correlation,
     run_interpretability_suite,
@@ -131,6 +132,23 @@ class TestTemporalValidity:
     def test_no_truth_rejected(self):
         with pytest.raises(ValueError):
             temporal_validity([10], [])
+
+
+class TestTemporalOnsetProxy:
+    def test_lag_is_first_over_threshold_index(self):
+        scores = [np.array([0.1, 0.2, 5.0, 6.0]),  # crosses at idx 2
+                  np.array([9.0, 0.1]),            # crosses at idx 0
+                  np.array([0.1, 0.1])]            # never crosses
+        r = temporal_onset_proxy(scores, threshold=1.0)
+        assert r["detection_rate"] == pytest.approx(2 / 3)
+        assert r["mean_lag"] == pytest.approx(1.0)  # mean(2, 0)
+        assert r["median_lag"] == pytest.approx(1.0)
+        assert r["n_anomalous_clips"] == 3
+
+    def test_none_detected(self):
+        r = temporal_onset_proxy([np.zeros(5)], threshold=1.0)
+        assert r["detection_rate"] == 0.0
+        assert np.isnan(r["mean_lag"])
 
 
 # ---------------------------------------------------------------------------

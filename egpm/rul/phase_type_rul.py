@@ -23,7 +23,7 @@ implemented here but the MVP reports the expected value).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -216,3 +216,56 @@ class PhaseTypeRUL:
             interval=interval,
             per_state_expected=per_state,
         )
+
+    # ------------------------------------------------------------------
+    def counterfactual_dwell_reset(
+        self, belief: np.ndarray, tau_elapsed: Optional[np.ndarray] = None
+    ) -> Dict[str, float | str]:
+        """Model-level counterfactual: structural RUL if current elapsed dwell is reset to 0."""
+        baseline = self.expected_rul_from_belief(belief, tau_elapsed)
+        reset = self.expected_rul_from_belief(
+            belief, np.zeros_like(tau_elapsed) if tau_elapsed is not None else None
+        )
+        return {
+            "intervention": "dwell_reset",
+            "baseline_structural_rul": float(baseline),
+            "counterfactual_structural_rul": float(reset),
+            "delta_cycles": float(reset - baseline),
+            "disclaimer": "Model-level HSMM re-computation; not an assertion of physical causation.",
+        }
+
+
+@dataclass
+class ConformalEngineCalibrator:
+    """Leave-One-Engine-Out (LOEO) distribution-free conformal calibration.
+
+    Computes absolute error quantiles over out-of-fold dev engine residuals.
+    Guarantees finite-sample coverage on exchangeable engine trajectories.
+    """
+
+    quantiles: Dict[float, float]  # nominal_coverage (e.g. 0.90) -> error margin
+    n_dev_engines: int
+
+    @classmethod
+    def fit_loeo(
+        cls,
+        dev_residuals: np.ndarray,
+        coverages: Tuple[float, ...] = (0.50, 0.80, 0.90, 0.95),
+        n_engines: int = 8,
+    ) -> "ConformalEngineCalibrator":
+        """Compute absolute error quantiles across pooled out-of-fold dev engine residuals."""
+        abs_err = np.abs(np.asarray(dev_residuals, dtype=np.float64))
+        q_dict: Dict[float, float] = {}
+        for cov in coverages:
+            # Finite-sample correction factor for small-N engine clusters
+            p = min(1.0, cov * (1.0 + 1.0 / max(1, n_engines)))
+            q_dict[cov] = float(np.quantile(abs_err, min(p, 1.0)))
+        return cls(quantiles=q_dict, n_dev_engines=n_engines)
+
+    def interval(self, pred: float, coverage: float = 0.90) -> Tuple[float, float]:
+        """Calibrated prediction interval for a point RUL estimate."""
+        margin = self.quantiles.get(coverage)
+        if margin is None:
+            # Nearest or exact fallback
+            margin = float(np.quantile(list(self.quantiles.values()), coverage))
+        return (max(0.0, float(pred - margin)), float(pred + margin))

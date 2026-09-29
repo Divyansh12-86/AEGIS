@@ -42,9 +42,10 @@ class ExplanationObject:
     RUL_estimate: Dict[str, Any]
     fault_prediction: Optional[Dict[str, Any]]
     health_index: float
+    counterfactual: Optional[Dict[str, Any]] = None
 
     def to_json_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "events": self.events,
             "state_trajectory": self.state_trajectory,
             "transition_probabilities": self.transition_probabilities,
@@ -54,6 +55,9 @@ class ExplanationObject:
             "fault_prediction": self.fault_prediction,
             "health_index": self.health_index,
         }
+        if self.counterfactual is not None:
+            d["counterfactual"] = self.counterfactual
+        return d
 
 
 def validate_explanation_schema(obj: Dict[str, Any]) -> List[str]:
@@ -136,6 +140,7 @@ class ExplanationBuilder:
         top_k_anomaly_windows: int = 5,
         current_state: Optional[int] = None,
         current_elapsed: Optional[int] = None,
+        counterfactual: Optional[Dict[str, Any]] = None,
     ) -> ExplanationObject:
         """Build the PRD §18 object for one run at the final window.
 
@@ -213,4 +218,14 @@ class ExplanationBuilder:
             RUL_estimate=RUL_estimate,
             fault_prediction=fault_prediction,
             health_index=float(health_index),
+            counterfactual=counterfactual,
         )
+
+    def what_if_dwell_reset(
+        self, belief: np.ndarray, tau_elapsed: Optional[np.ndarray] = None
+    ) -> Dict[str, Any]:
+        """Compute structural RUL under an elapsed dwell reset (tau -> 0)."""
+        from ..rul.phase_type_rul import PhaseTypeRUL
+
+        pt = PhaseTypeRUL(self.hsmm)
+        return pt.counterfactual_dwell_reset(belief, tau_elapsed)

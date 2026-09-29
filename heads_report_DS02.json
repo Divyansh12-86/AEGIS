@@ -15,6 +15,11 @@
       2
     ],
     "fault_labels": "run-level hs class (N-CMAPSS auxiliary health state)",
+    "fault_mode_per_seed": [
+      "degenerate_majority",
+      "degenerate_majority",
+      "degenerate_majority"
+    ],
     "health_validation": "per-unit Spearman(health_index, hs_label), PRD \u00a714"
   },
   "results": {
@@ -38,25 +43,132 @@
       "n_units": 2
     },
     "health_spearman_vs_hs": {
-      "mean": 0.0956640556452548,
-      "std_over_seeds": 0.3945133798272065,
+      "mean": 0.10577991956127653,
+      "std_over_seeds": 0.4219988237892602,
       "per_seed": [
-        -0.4611106882358435,
-        0.4050776056638664,
-        0.3430252495077415
+        -0.48897459886461114,
+        0.4458749505825841,
+        0.36043940696585663
       ],
-      "unit_mean": 0.09566405564525482,
+      "unit_mean": 0.1057799195612765,
       "unit_ci95": [
-        0.05507305467276182,
-        0.1362550566177478
+        -0.007642570841018344,
+        0.21920240996357135
       ],
       "per_unit": [
-        0.05507305467276182,
-        0.1362550566177478
+        -0.007642570841018344,
+        0.21920240996357135
       ],
       "n_units": 2
     }
   },
-  "notes": "Fault: run-level hs class from belief trajectory + duration stats (no raw-embedding bypass, PRD Decision 5). Health: fixed ordinal severity weights validated against hs labels (PRD \u00a714 \u2014 validity is checked, not assumed). Unit-level bootstrap CIs per \u00a723; only 2 test units \u2192 CIs wide.",
-  "wall_clock_s": 23.363480806350708
+  "multitask_a3": {
+    "note": "A3 (PRD \u00a722): Stage-3 joint multi-task head training vs independent single-task copies, identical heads/steps/lr, frozen beliefs. delta > 0 means joint wins (for accuracy/spearman; for rul_rmse delta < 0 means joint wins). Anomaly task absent: no anomaly labels on N-CMAPSS. NOTE: heads share NO trainable parameters and the encoder/VQ/HSMM stay frozen, so joint \u2261 single-task exactly (per-parameter adaptive updates decouple) \u2014 the \u00a715 multi-task coupling only bites in the full-gradient Stage-3 variant (encoder flow), which is the research-grade extension this result motivates.",
+    "per_seed": [
+      {
+        "tasks": [
+          "health",
+          "rul"
+        ],
+        "joint": {
+          "health_spearman": -0.5479001639634902,
+          "rul_rmse": 45.62689584687276
+        },
+        "single_task": {
+          "health_spearman": -0.5479001639634902,
+          "rul_rmse": 45.62689584687276
+        }
+      },
+      {
+        "tasks": [
+          "health",
+          "rul"
+        ],
+        "joint": {
+          "health_spearman": -0.7184214308139114,
+          "rul_rmse": 45.991025465925986
+        },
+        "single_task": {
+          "health_spearman": -0.7184214308139114,
+          "rul_rmse": 45.991025465925986
+        }
+      },
+      {
+        "tasks": [
+          "health",
+          "rul"
+        ],
+        "joint": {
+          "health_spearman": -0.6882644487702745,
+          "rul_rmse": 45.50085434789736
+        },
+        "single_task": {
+          "health_spearman": -0.6882644487702745,
+          "rul_rmse": 45.50085434789736
+        }
+      }
+    ],
+    "joint_mean": {
+      "health_spearman": -0.6515286811825587,
+      "rul_rmse": 45.70625855356537
+    },
+    "single_task_mean": {
+      "health_spearman": -0.6515286811825587,
+      "rul_rmse": 45.70625855356537
+    },
+    "delta_joint_minus_single": {
+      "health_spearman": 0.0,
+      "rul_rmse": 0.0
+    }
+  },
+  "health_ab_decision": {
+    "note": "\u00a714: a=fixed ordinal prior evaluated; b=learned monotone-regularized weights trained on train units only; variant chosen by validation Spearman before final test eval.",
+    "per_seed": [
+      {
+        "ab": "b",
+        "val_spearman_fixed": 0.20901803429695914,
+        "val_spearman_learned": 0.20939837051599525,
+        "test_spearman_fixed": -0.4611106882358435,
+        "test_spearman_learned": -0.48897459886461114,
+        "learned_weights": [
+          0.8346117734909058,
+          0.7683571577072144,
+          0.7689089179039001,
+          0.6672706007957458,
+          0.6413679718971252
+        ]
+      },
+      {
+        "ab": "b",
+        "val_spearman_fixed": 0.8151212524958986,
+        "val_spearman_learned": 0.8155015887149346,
+        "test_spearman_fixed": 0.4050776056638664,
+        "test_spearman_learned": 0.4458749505825841,
+        "learned_weights": [
+          0.8510335683822632,
+          0.789279580116272,
+          0.7676964998245239,
+          0.7624390721321106,
+          0.7298675179481506
+        ]
+      },
+      {
+        "ab": "b",
+        "val_spearman_fixed": 0.6267297379883687,
+        "val_spearman_learned": 0.6282933367126864,
+        "test_spearman_fixed": 0.3430252495077415,
+        "test_spearman_learned": 0.36043940696585663,
+        "learned_weights": [
+          0.9000322818756104,
+          0.791310727596283,
+          0.7421441674232483,
+          0.7460939288139343,
+          0.7216302752494812
+        ]
+      }
+    ],
+    "majority": "b"
+  },
+  "notes": "Fault: run-level hs class from belief trajectory + duration stats (no raw-embedding bypass, PRD Decision 5). Health: \u00a714 a/b resolved on VALIDATION split (Spearman), winner reported on test. Unit-level bootstrap CIs per \u00a723; only 2 test units \u2192 CIs wide.",
+  "wall_clock_s": 34.33299803733826
 }

@@ -22,7 +22,8 @@ class LSTMRUL(nn.Module):
     """
 
     def __init__(self, n_channels: int, window_length: int,
-                 hidden: int = 32, rnn_hidden: int = 32):
+                 hidden: int = 32, rnn_hidden: int = 32,
+                 per_timestep: bool = False):
         super().__init__()
         self.window_embed = nn.Sequential(
             nn.Linear(window_length * n_channels, hidden),
@@ -30,15 +31,19 @@ class LSTMRUL(nn.Module):
         )
         self.lstm = nn.LSTM(hidden, rnn_hidden, batch_first=True)
         self.head = nn.Linear(rnn_hidden, 1)
+        self.per_timestep = per_timestep
 
     def forward(self, X: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """X/mask: [B, T, W, d] -> RUL at the final window [B]."""
+        """X/mask: [B, T, W, d] -> RUL at the final window [B]; with
+        per_timestep=True -> [B, T] (head at every step, causal by
+        construction: position t only consumes windows <= t)."""
         if X.ndim != 4:
             raise ValueError(f"X must be [B, T, W, d]; got {X.shape}")
         B, T, W, d = X.shape
-        m = (mask[:, :, 0, 0] > 0).float()  # [B, T]
         flat = X.reshape(B, T, W * d)
         h = self.window_embed(flat)  # [B, T, hidden]
         out, _ = self.lstm(h)
+        if self.per_timestep:
+            return self.head(out).squeeze(-1)  # [B, T]
         last = out[:, -1, :]  # [B, rnn_hidden]
         return self.head(last).squeeze(-1)

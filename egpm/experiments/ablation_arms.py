@@ -50,7 +50,7 @@ from ..utils import set_global_seed
 
 ARMS = ["A_continuous", "B_continuous_hmm", "C_vq_markov",
         "D_vq_hmm", "E_vq_hsmm", "E2_hsmm_native", "F_full_egpm",
-        "CNN_RUL_baseline"]
+        "CNN_RUL_baseline", "LSTM_RUL_baseline"]
 
 
 @dataclass
@@ -75,7 +75,9 @@ def _downsample(rec: UnitRecord) -> UnitRecord:
     return UnitRecord(rec.unit_id, rec.signals[::step],
                       np.arange(len(rec.signals[::step]), dtype=float),
                       health_labels=lbl(rec.health_labels),
-                      rul_labels=lbl(rec.rul_labels))
+                      rul_labels=lbl(rec.rul_labels),
+                      anomaly_labels=lbl(rec.anomaly_labels),
+                      fault_label=rec.fault_label)
 
 
 def _ridge_fit(X: np.ndarray, y: np.ndarray, lam: float = 1.0) -> np.ndarray:
@@ -382,6 +384,71 @@ def run_ablation_experiment(
         per_arm_seed["CNN_RUL_baseline"].setdefault("runtime_s", []).append(
             time.time() - t_arm)
 
+        # LSTM-RUL real-data baseline (PRD §21): recurrent inductive bias on
+        # identical windows/splits; per-timestep head so every window gets a
+        # prediction (causal: position t consumes windows <= t only).
+        t_arm = time.time()
+        from ..baselines import LSTMRUL
+        lstm = LSTMRUL(n_channels=Xtr.shape[-1], window_length=window_length,
+                       per_timestep=True)
+        torch.manual_seed(seed)
+        opt = torch.optim.Adam(lstm.parameters(), lr=1e-3)
+
+        def _padded(seqs):
+            T = max(len(s.X) for s in seqs)
+            Bx = torch.zeros(len(seqs), T, *seqs[0].X.shape[1:])
+            Bm = torch.zeros(len(seqs), T)
+            By = torch.zeros(len(seqs), T)
+            for i, s in enumerate(seqs):
+                Ti = len(s.X)
+                Bx[i, :Ti] = torch.as_tensor(s.X, dtype=torch.float32)
+                Bm[i, :Ti] = 1.0
+                By[i, :Ti] = torch.as_tensor(s.rul_labels, dtype=torch.float32)
+            return Bx, Bm, By
+
+        Bx_tr, Bm_tr, By_tr = _padded(train)
+        Bx_va, Bm_va, By_va = _padded(
+            [prep.process(dataset[u], norm_stats=stats)
+             for u in split.val_unit_ids])
+
+        def _lstm_loss(Bx, Bm, By):
+            p = lstm(Bx, torch.ones_like(Bx))
+            return ((p - By) ** 2 * Bm).sum() / Bm.sum().clamp_min(1.0)
+
+        best, best_state, wait = float("inf"), None, 0
+        for _ in range(100):
+            lstm.train()
+            opt.zero_grad()
+            loss = _lstm_loss(Bx_tr, Bm_tr, By_tr)
+            loss.backward(); opt.step()
+            lstm.eval()
+            with torch.no_grad():
+                vv = float(_lstm_loss(Bx_va, Bm_va, By_va))
+            if vv < best - 1e-4:
+                best, wait = vv, 0
+                best_state = {k: t.clone() for k, t in lstm.state_dict().items()}
+            else:
+                wait += 1
+                if wait >= 10:
+                    break
+        lstm.load_state_dict(best_state)
+        lstm.eval()
+        lstm_preds = []
+        with torch.no_grad():
+            for s in test:
+                X = torch.as_tensor(s.X, dtype=torch.float32)[None]
+                lstm_preds.append(lstm(X, torch.ones_like(X))[0].numpy())
+        per_arm_seed["LSTM_RUL_baseline"].setdefault("rmse", []).append(
+            rul_metrics(np.concatenate(lstm_preds), np.concatenate(
+                [s.rul_labels for s in test]))["RMSE"])
+        per_arm_seed["LSTM_RUL_baseline"].setdefault("mae", []).append(
+            rul_metrics(np.concatenate(lstm_preds), np.concatenate(
+                [s.rul_labels for s in test]))["MAE"])
+        per_arm_seed["LSTM_RUL_baseline"].setdefault("rmse_per_unit", []).append(
+            per_unit_metrics(lstm_preds, [s.rul_labels for s in test]).tolist())
+        per_arm_seed["LSTM_RUL_baseline"].setdefault("runtime_s", []).append(
+            time.time() - t_arm)
+
         # event stability: this seed's train tokenization vs next seed's
         # (same units, different encoder init) — matched usage overlap
         ev_by_seed[seed] = ev_train
@@ -470,7 +537,7 @@ if __name__ == "__main__":
     import sys
     path = sys.argv[1] if len(sys.argv) > 1 else "N-CMAPSS/N-CMAPSS DS01 005.h5"
     rep = run_ablation_experiment(path)
-    out = f"ablation_report_{path.split()[-1].split('.')[0]}.json"
+    out = f"ablation_report_{path.split()[-2]}.json"  # "... DS01 005.h5" -> DS01
     with open(out, "w") as f:
         json.dump(rep, f, indent=2)
     print(f"-> {out}  |  test units: {rep['n_independent_test_units']}")

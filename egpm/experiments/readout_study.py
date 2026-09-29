@@ -44,7 +44,7 @@ from ..evaluation import rul_metrics
 from ..utils import set_global_seed
 from .ablation_arms import _downsample, _ridge_fit, _ridge_predict
 
-FEAT_DIM_NOTE = "per-step: event_onehot[K] + posterior[M] + dwell[M]/d_max + emis_surp[1] + dur_surp[1]"
+FEAT_DIM_NOTE = "per-step: state_posterior[M] + dwell[M]/d_max"
 
 
 # ---------------------------------------------------------------- heads
@@ -62,10 +62,13 @@ class GRUHead(nn.Module):
 class TCNHead(nn.Module):
     def __init__(self, in_dim: int, hidden: int = 32):
         super().__init__()
+        # Causal left-padding: (K-1)*d left, 0 right
         self.net = nn.Sequential(
-            nn.Conv1d(in_dim, hidden, 3, dilation=1, padding=1),
+            nn.ConstantPad1d((2, 0), 0.0),
+            nn.Conv1d(in_dim, hidden, 3, dilation=1, padding=0),
             nn.GELU(),
-            nn.Conv1d(hidden, hidden, 3, dilation=2, padding=2),
+            nn.ConstantPad1d((4, 0), 0.0),
+            nn.Conv1d(hidden, hidden, 3, dilation=2, padding=0),
             nn.GELU(),
         )
         self.out = nn.Linear(hidden, 1)
@@ -76,15 +79,17 @@ class TCNHead(nn.Module):
 
 
 class TSMixerHead(nn.Module):
-    """TSMixer-style block: feature-mixing MLP + time-mixing MLP
-    (transpose), residual + norm; length-agnostic in T. One stack kept
-    deliberately modest."""
+    """TSMixer-style block: feature-mixing MLP + causal time-mixing Conv1D,
+    residual + norm; length-agnostic in T. One stack kept deliberately modest."""
     def __init__(self, in_dim: int, hidden: int = 32):
         super().__init__()
         self.f_mlp = nn.Sequential(nn.Linear(in_dim, hidden), nn.GELU(),
                                    nn.Linear(hidden, in_dim))
-        self.t_conv = nn.Conv1d(in_dim, in_dim, kernel_size=3, padding=1,
-                                groups=in_dim)  # per-channel temporal mix
+        # Strictly causal depthwise temporal mixing (step t sees <= t only)
+        self.t_conv = nn.Sequential(
+            nn.ConstantPad1d((2, 0), 0.0),
+            nn.Conv1d(in_dim, in_dim, kernel_size=3, padding=0, groups=in_dim),
+        )
         self.out = nn.Sequential(nn.Linear(in_dim, hidden), nn.GELU(),
                                   nn.Linear(hidden, 1))
         self.norm1 = nn.LayerNorm(in_dim)
@@ -100,23 +105,14 @@ def _n_params(m: nn.Module) -> int:
     return sum(p.numel() for p in m.parameters() if p.requires_grad)
 
 
-# ---------------------------------------------------------------- features# ---------------------------------------------------------------- features
+# ---------------------------------------------------------------- features
 def _egpm_features(trainer, hsmm, windows, tokens):
-    """Structured per-step features: [T, K + 2M + 2]. Only EGPM outputs."""
+    """Clean structured per-step features: [T, 2M] matching Arm E."""
     fb = ForwardBackward(hsmm)
-    scorer = AnomalyScorer()
-    K, M = hsmm.K, hsmm.M
     out = []
     for w_seq, v in zip(windows, tokens):
         r = fb.run(v)
-        comp = scorer.score_sequence(hsmm, v)
-        T = len(v)
-        F = np.zeros((T, K + 2 * M + 2))
-        F[np.arange(T), v] = 1.0                       # event one-hot
-        F[:, K:K + M] = r.state_posterior              # state posterior
-        F[:, K + M:K + 2 * M] = r.expected_dwell / hsmm.d_max
-        F[:, K + 2 * M] = comp.emission_surprisal        # per-step emission surprisal
-        F[:, K + 2 * M + 1] = comp.score                  # per-step anomaly score
+        F = np.concatenate([r.state_posterior, r.expected_dwell / hsmm.d_max], axis=1)
         out.append(F)
     return out
 
@@ -311,3 +307,20 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
         "results": results,
         "wall_clock_s": time.time() - t0,
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    path = sys.argv[1] if len(sys.argv) > 1 else "N-CMAPSS/N-CMAPSS DS01 005.h5"
+    ds_tag = path.split()[-2]  # e.g. "DS01" or "DS02"
+    rep = run_readout_study(path)
+    out_file = f"readout_study_{ds_tag}.json"
+    with open(out_file, "w") as f:
+        json.dump(rep, f, indent=2)
+    print(f"-> Saved {out_file} (wall clock: {rep['wall_clock_s']:.1f}s)")
+    print(f"{'Head':20s} {'RMSE (mean±std)':>18s} {'MAE (mean±std)':>18s}")
+    for name, d in rep["results"].items():
+        rmse_str = f"{d['rmse']['mean']:.2f} ± {d['rmse']['std']:.2f}"
+        mae_str = f"{d['mae']['mean']:.2f} ± {d['mae']['std']:.2f}"
+        print(f"{name:20s} {rmse_str:>18s} {mae_str:>18s}")

@@ -256,6 +256,25 @@ class TestExplanationBuilder:
         assert obj["fault_prediction"] is None
         assert validate_explanation_schema(obj) == []
 
+    def test_what_if_dwell_reset_and_counterfactual_schema(self):
+        hsmm, v, vit, anomaly, rul, health = build_full_pipeline_outputs()
+        builder = ExplanationBuilder(hsmm)
+        belief = np.array([1.0, 0.0, 0.0])
+        tau = np.array([3, 0, 0])
+        cf = builder.what_if_dwell_reset(belief, tau)
+        assert cf["intervention"] == "dwell_reset"
+        assert cf["delta_cycles"] >= 0.0
+        
+        # Build explanation with counterfactual attached
+        obj = builder.build(
+            unit_id="u", v_seq=v, viterbi=vit, anomaly=anomaly, rul=rul,
+            health_index=health, counterfactual=cf
+        ).to_json_dict()
+        assert "counterfactual" in obj
+        assert obj["counterfactual"]["intervention"] == "dwell_reset"
+        # Validate that attaching counterfactual preserves schema compliance
+        assert validate_explanation_schema(obj) == []
+
 
 class TestSchemaValidator:
     def test_validator_catches_missing_keys(self):

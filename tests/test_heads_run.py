@@ -21,6 +21,7 @@ def _hs_dataset(seed=0):
             unit_id=f"u{i}", signals=signals,
             timestamps=np.arange(T, dtype=float),
             health_labels=health.astype(np.int64),
+            fault_label=i % 3,  # 3-class fc-style target, constant per unit
         ))
     return ds
 
@@ -46,3 +47,26 @@ class TestHeadsRun:
     def test_perfect_labels_perfect_fault(self, report):
         # synthetic hs is perfectly separable from the ramp -> accuracy 1.0
         assert report["results"]["fault_accuracy"]["mean"] == 1.0
+
+    def test_fc_target_runs_and_scores(self):
+        # 3-class fc-style labels: head consumes fault_label, not hs
+        rep = run_heads_experiment(
+            _hs_dataset(seed=7), n_seeds=1, window_length=4,
+            stage1_steps=30, em_max_iter=4, em_restarts=1,
+            fault_target="fc", verbose=False,
+        )
+        assert rep["config"]["hs_classes"] == [0, 1, 2]
+        assert 0.0 <= rep["results"]["fault_accuracy"]["mean"] <= 1.0
+
+    def test_fc_target_requires_labels(self):
+        ds = UnitDataset()
+        for i in range(4):
+            T = 60
+            x = np.linspace(0, 1, T)
+            ds.add(UnitRecord(
+                unit_id=f"u{i}", signals=np.stack([x, 1 - x], axis=1),
+                timestamps=np.arange(T, dtype=float),
+                health_labels=np.ones(T, dtype=np.int64),
+            ))
+        with pytest.raises(ValueError):
+            run_heads_experiment(ds, n_seeds=1, fault_target="fc", verbose=False)

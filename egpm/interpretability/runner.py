@@ -37,6 +37,7 @@ from .metrics import (
     event_stability,
     cross_unit_consistency,
     temporal_validity,
+    temporal_onset_proxy,
     explanation_faithfulness,
     anomaly_score_rank_correlation,
 )
@@ -224,6 +225,7 @@ def run_interpretability_suite(
     faith_reductions = []
     rank_scores: List[float] = []
     rank_labels: List[int] = []
+    win_scores: Dict[int, List[np.ndarray]] = {0: [], 1: []}
     scorer = AnomalyScorer()
     for pool, run_i, uid in eval_pool:
         rec = dataset[uid]
@@ -231,6 +233,7 @@ def run_interpretability_suite(
         comp = scorer.score_sequence(trainer.hsmm, v)
         rank_scores.append(float(comp.score.mean()))
         rank_labels.append(int(rec.anomaly_labels[0]))
+        win_scores[int(rec.anomaly_labels[0])].append(comp.score)
         if rec.anomaly_labels[0] == 1:
             top = list(np.argsort(comp.score)[::-1][:top_k_flag])
             f = explanation_faithfulness(v, top, trainer.hsmm, scorer)
@@ -252,6 +255,19 @@ def run_interpretability_suite(
             "spearman": float("nan"),
             "note": "single-class units available; needs both classes for "
                     "the rank correlation (evaluation-only consumption)",
+        }
+
+    # ---------------- temporal proxies (no onset truth; MIMII) ----------------
+    if n_units_with_truth == 0 and win_scores[0] and win_scores[1]:
+        thr_scorer = AnomalyScorer()
+        thr = thr_scorer.fit_threshold(np.concatenate(win_scores[0]))
+        results["temporal_proxies"] = {
+            **temporal_onset_proxy(win_scores[1], thr),
+            "threshold_percentile": thr_scorer.threshold_percentile,
+            "note": "proxy, NOT ground-truth onset alignment: MIMII anomalous "
+                    "clips are anomalous from t=0, so the first over-threshold "
+                    "window is a pseudo-onset. Threshold = 99th pct of normal "
+                    "eval windows (PRD §11 thresholding convention).",
         }
 
     return InterpretabilityReport(

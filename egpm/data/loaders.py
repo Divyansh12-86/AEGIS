@@ -228,6 +228,7 @@ class NCMAPSSLoader:
                     signals = signals_all[rows].astype(np.float64)
                     rul = Y[rows].astype(np.float64)
                     hs = A[rows, 3].astype(np.int64) + 1  # 1-based health state
+                    fc = int(A[rows, 2][0])  # Fc is constant within a unit
                     if self.max_cycles_per_unit is not None:
                         cycles = A[rows, 1]
                         unique_cycles = np.unique(cycles)
@@ -243,6 +244,7 @@ class NCMAPSSLoader:
                             timestamps=np.arange(len(signals), dtype=np.float64),
                             health_labels=hs,
                             rul_labels=rul,
+                            fault_label=fc,
                         )
                     )
 

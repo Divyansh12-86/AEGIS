@@ -218,9 +218,34 @@ def temporal_validity(
     }
 
 
+def temporal_onset_proxy(
+    per_clip_scores: List[np.ndarray], threshold: float
+) -> Dict[str, float]:
+    """Onset-detection proxy for datasets without onset labels (MIMII).
+
+    Anomalous clips are anomalous from t=0, so the first window whose score
+    exceeds the normal-derived threshold is a pseudo-onset; its index is the
+    detection lag (0 = immediate). Clips that never cross are undetected.
+    """
+    lags: List[Optional[int]] = []
+    for s in per_clip_scores:
+        hits = np.flatnonzero(np.asarray(s, dtype=np.float64) > threshold)
+        lags.append(int(hits[0]) if len(hits) else None)
+    det = [x for x in lags if x is not None]
+    n = len(lags)
+    return {
+        "detection_rate": len(det) / n if n else float("nan"),
+        "mean_lag": float(np.mean(det)) if det else float("nan"),
+        "median_lag": float(np.median(det)) if det else float("nan"),
+        "n_anomalous_clips": n,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Explanation faithfulness (PRD §24 row 5; replaces "rule fidelity")
 # ---------------------------------------------------------------------------
+
+
 def explanation_faithfulness(
     v_seq: np.ndarray,
     flagged_windows: List[int],

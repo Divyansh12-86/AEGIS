@@ -10,7 +10,7 @@ import pytest
 
 from egpm.grammar import HSMM
 from egpm.grammar.hsmm import DurationHistogram
-from egpm.rul import PhaseTypeRUL, RULResult
+from egpm.rul import PhaseTypeRUL, RULResult, ConformalEngineCalibrator
 
 
 def two_state_deterministic(dwell: int, d_max: int = 20) -> HSMM:
@@ -255,3 +255,50 @@ class TestEdgeCases:
             for tau in (0, 2, 6):
                 v = rul.expected_rul(s, tau)
                 assert np.isfinite(v) and v >= 0
+
+
+class TestConformalAndCounterfactual:
+    def test_counterfactual_dwell_reset(self):
+        hsmm = two_state_deterministic(dwell=5)
+        rul = PhaseTypeRUL(hsmm)
+        # Mid-dwell state 0 with tau=3 (residual = 2)
+        res = rul.counterfactual_dwell_reset(
+            belief=np.array([1.0, 0.0]), tau_elapsed=np.array([3, 0])
+        )
+        assert res["intervention"] == "dwell_reset"
+        assert res["baseline_structural_rul"] == pytest.approx(2.0)
+        assert res["counterfactual_structural_rul"] == pytest.approx(5.0)
+        assert res["delta_cycles"] == pytest.approx(3.0)
+        assert "disclaimer" in res
+
+    def test_counterfactual_absorbing_state_zero_delta(self):
+        hsmm = two_state_deterministic(dwell=5)
+        rul = PhaseTypeRUL(hsmm)
+        # In failure state 1
+        res = rul.counterfactual_dwell_reset(
+            belief=np.array([0.0, 1.0]), tau_elapsed=np.array([0, 5])
+        )
+        assert res["baseline_structural_rul"] == 0.0
+        assert res["counterfactual_structural_rul"] == 0.0
+        assert res["delta_cycles"] == 0.0
+
+    def test_conformal_engine_calibrator_coverage(self):
+        rng = np.random.default_rng(42)
+        # Synthetic dev engine residuals from normal distribution std=10
+        dev_res = rng.normal(0, 10, size=1000)
+        cal = ConformalEngineCalibrator.fit_loeo(dev_res, n_engines=8)
+        
+        # Test residuals from same distribution
+        test_res = rng.normal(0, 10, size=500)
+        preds = 100.0 + test_res
+        
+        covered_90 = 0
+        for p, true_val in zip(preds, [100.0] * len(preds)):
+            lo, hi = cal.interval(p, coverage=0.90)
+            assert lo >= 0.0
+            assert hi >= lo
+            if lo <= true_val <= hi:
+                covered_90 += 1
+        empirical_cov = covered_90 / len(preds)
+        assert empirical_cov >= 0.88  # Nominal 90% achieves >= 88%
+

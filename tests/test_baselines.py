@@ -72,6 +72,18 @@ class TestLSTMRUL:
             opt.step()
         assert loss.item() < first * 0.2
 
+    def test_per_timestep_shape_and_causality(self):
+        torch.manual_seed(0)
+        model = LSTMRUL(n_channels=1, window_length=4, per_timestep=True)
+        X = torch.randn(2, 7, 4, 1)
+        p = model(X, torch.ones_like(X))
+        assert p.shape == (2, 7)
+        # causality: prediction at t must not change when the tail changes
+        X2 = X.clone()
+        X2[:, 5:] = torch.randn(2, 2, 4, 1) * 10
+        p2 = model(X2, torch.ones_like(X2))
+        assert torch.allclose(p[:, :5], p2[:, :5], atol=1e-5)
+
 
 class TestSAXGrammarViz:
     def test_breakpoints_monotone_symmetric(self):

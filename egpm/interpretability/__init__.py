@@ -4,6 +4,7 @@ from .metrics import (
     hungarian_state_match,
     cross_unit_consistency,
     temporal_validity,
+    temporal_onset_proxy,
     explanation_faithfulness,
     anomaly_score_rank_correlation,
 )
@@ -15,6 +16,7 @@ __all__ = [
     "hungarian_state_match",
     "cross_unit_consistency",
     "temporal_validity",
+    "temporal_onset_proxy",
     "explanation_faithfulness",
     "anomaly_score_rank_correlation",
     "run_interpretability_suite",
