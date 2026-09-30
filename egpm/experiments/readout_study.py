@@ -106,26 +106,35 @@ def _n_params(m: nn.Module) -> int:
 
 
 # ---------------------------------------------------------------- features
-def _egpm_features(trainer, hsmm, windows, tokens):
-    """Clean structured per-step features: [T, 2M] matching Arm E."""
+def _egpm_features(trainer, hsmm, windows, tokens, mode: str = "smoothing"):
+    """Clean structured per-step features: [T, 2M] matching Arm E.
+
+    mode: 'smoothing' (default) for offline P(S_t | v_0:T-1),
+          'causal' for strictly online P(S_t | v_0:t).
+    """
     fb = ForwardBackward(hsmm)
     out = []
     for w_seq, v in zip(windows, tokens):
-        r = fb.run(v)
+        r = fb.causal_filter(v) if mode == "causal" else fb.run(v)
         F = np.concatenate([r.state_posterior, r.expected_dwell / hsmm.d_max], axis=1)
         out.append(F)
     return out
 
 
 def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
+                      stride: Optional[int] = None,
                       n_states: int = 5, d_max: int = 10, n_codes: int = 16,
                       stage1_steps: int = 300, em_max_iter: int = 10,
-                      verbose: bool = True) -> Dict:
+                      n_conv_blocks: int = 3,
+                      verbose: bool = True, feature_mode: str = "smoothing",
+                      heads: Optional[List[str]] = None,
+                      seeds: Optional[List[int]] = None) -> Dict:
     dataset = NCMAPSSLoader().load(h5_path)
     dataset.records = [_downsample(r) for r in dataset.records]
     t0 = time.time()
     per_model: Dict[str, Dict[str, List[float]]] = {}
     meta = {}
+    diagnostics = []
 
     def record(name, rmse, mae, epochs, params, es):
         per_model.setdefault(name, {}).setdefault("rmse", []).append(rmse)
@@ -133,12 +142,13 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
         per_model[name].setdefault("epochs", []).append(epochs)
         meta.setdefault(name, {"params": params, "early_stop": es})
 
-    for seed in range(n_seeds):
+    seeds_list = list(seeds) if seeds is not None else list(range(n_seeds))
+    for seed in seeds_list:
         set_global_seed(seed)
         sb = SplitBuilder(dataset, seed=0)
         split = sb.build()
         stats = sb.fit_normalization(split)
-        prep = Preprocessor(window_length=window_length)
+        prep = Preprocessor(window_length=window_length, stride=stride)
         tr_units = split.train_unit_ids
         va_units = split.val_unit_ids
         te_units = split.test_unit_ids
@@ -158,7 +168,7 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
 
         cfg = TrainerConfig(
             window_length=window_length, embed_dim=16, hidden=32,
-            n_conv_blocks=2, n_codes=n_codes, d_max=d_max,
+            n_conv_blocks=n_conv_blocks, n_codes=n_codes, d_max=d_max,
             n_states=n_states, em_max_iter=em_max_iter, em_restarts=10,
             stage1_steps=stage1_steps, batch_size=64, seed=seed, log_every=0,
         )
@@ -190,9 +200,9 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
         hsmm = trainer.hsmm
 
         # structured EGPM features (train uses same trained HSMM)
-        f_tr = _egpm_features(trainer, hsmm, tr, ev_tr)
-        f_va = _egpm_features(trainer, hsmm, va, ev_va)
-        f_te = _egpm_features(trainer, hsmm, te, ev_te)
+        f_tr = _egpm_features(trainer, hsmm, tr, ev_tr, mode=feature_mode)
+        f_va = _egpm_features(trainer, hsmm, va, ev_va, mode=feature_mode)
+        f_te = _egpm_features(trainer, hsmm, te, ev_te, mode=feature_mode)
 
         y_tr_np = np.concatenate([s.rul_labels for s in tr])
         y_va_np = np.concatenate([s.rul_labels for s in va])
@@ -202,13 +212,19 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
             return rul_metrics(np.concatenate(preds), y_te_np)
 
         # ---- 0. ridge (reference) ----
-        w = _ridge_fit(np.concatenate(f_tr), y_tr_np)
-        pr = [_ridge_predict(w, f) for f in f_te]
-        m = eval_np(pr)
-        record("ridge", m["RMSE"], m["MAE"], 0, 0, False)
+        if heads is None or "ridge" in heads:
+            w = _ridge_fit(np.concatenate(f_tr), y_tr_np)
+            pr = [_ridge_predict(w, f) for f in f_te]
+            m = eval_np(pr)
+            record("ridge", m["RMSE"], m["MAE"], 0, 0, False)
+            for u, p, y in zip(te_units, pr, [s.rul_labels for s in te]):
+                em = rul_metrics(p, y)
+                record(f"ridge_{u}", em["RMSE"], em["MAE"], 0, 0, False)
 
         # ---- neural heads helper ----
         def run_neural(name, model_fn, tr_feats, va_feats, te_feats):
+            if heads is not None and name not in heads:
+                return
             torch.manual_seed(seed)
             model = model_fn()
             # train on concatenated sequences with per-run reset via batches
@@ -276,6 +292,22 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
                    lambda: TSMixerHead(z_va[0].shape[-1], hidden=32),
                    zseq(tr), z_va, z_te)
 
+        # diagnostics
+        s1 = trainer.stats[0] if trainer.stats else None
+        all_tr_ev = np.concatenate(ev_tr)
+        all_te_ev = np.concatenate(ev_te)
+        diag = {
+            "seed": seed,
+            "vq_perplexity": float(s1.perplexity) if s1 else float("nan"),
+            "vq_effective_size": int(s1.effective_size) if s1 else 0,
+            "vq_codebook_utilization": float(len(np.unique(all_tr_ev)) / n_codes),
+            "event_token_distribution_test": [int(c) for c in np.bincount(all_te_ev, minlength=n_codes)],
+            "mean_state_occupancy_test": [float(p) for p in np.mean(np.concatenate([f[:, :n_states] for f in f_te]), axis=0)],
+            "eval_windows_per_engine": {u: int(len(s.X)) for u, s in zip(te_units, te)},
+            "total_eval_windows": int(sum(len(s.X) for s in te)),
+        }
+        diagnostics.append(diag)
+
         if verbose:
             done = {k: v["rmse"][-1] for k, v in per_model.items()}
             print(f"seed {seed}: " + "  ".join(
@@ -296,6 +328,10 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
         "n_independent_test_units": len(te_units),
         "test_unit_ids": te_units,
         "feature_contract": FEAT_DIM_NOTE,
+        "feature_mode": feature_mode,
+        "window_length": window_length,
+        "stride": stride,
+        "n_conv_blocks": n_conv_blocks,
         "heads": {
             "ridge": "closed-form ridge (reference)",
             "gru": "1-layer GRU hidden=32, Adam lr=1e-3, ES patience 10 on val RMSE",
@@ -305,6 +341,7 @@ def run_readout_study(h5_path: str, n_seeds: int = 3, window_length: int = 4,
             "z_tsmixer": "CONTROL: encoder z seq -> same TSMixer (info-loss probe)",
         },
         "results": results,
+        "diagnostics": diagnostics,
         "wall_clock_s": time.time() - t0,
     }
 

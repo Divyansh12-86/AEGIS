@@ -145,3 +145,24 @@ class VQCodebook(nn.Module):
         """Deterministic argmin assignment for inference (PRD §4)."""
         d2 = torch.cdist(z.unsqueeze(0), self.codebook.unsqueeze(0)).squeeze(0) ** 2
         return d2.argmin(dim=1)
+
+    # ------------------------------------------------------------------
+    @torch.no_grad()
+    def revive_dead_codes(self, z: torch.Tensor, threshold: float = 1.0) -> int:
+        """Reinitializes inactive codebook vectors from current training embeddings.
+
+        A code is inactive if its EMA cluster size is below threshold (e.g. < 1.0,
+        meaning an exponential average of fewer than 1 assigned sample per batch).
+        """
+        dead_mask = self.ema_cluster_size < threshold
+        n_dead = int(dead_mask.sum().item())
+        if n_dead > 0 and z.shape[0] > 0:
+            B = z.shape[0]
+            rand_idx = torch.randperm(B, device=z.device)[:n_dead]
+            if len(rand_idx) < n_dead:
+                rand_idx = torch.randint(0, B, (n_dead,), device=z.device)
+            sampled_z = z[rand_idx].detach()
+            self.codebook[dead_mask] = sampled_z
+            self.ema_embed_sum[dead_mask] = sampled_z
+            self.ema_cluster_size[dead_mask] = 1.0
+        return n_dead

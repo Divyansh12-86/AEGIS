@@ -239,12 +239,36 @@ class ForwardBackward:
         return beta
 
     # ------------------------------------------------------------------
-    def run(self, obs: np.ndarray) -> ForwardBackwardResult:
-        """Full forward-backward: smoothing posterior p_t(i) (PRD §5.1).
+    def causal_filter(self, obs: np.ndarray) -> ForwardBackwardResult:
+        """Causal forward filtering: p_t(i) = P(s_t = i | v_0..t) without beta."""
+        alpha, ll = self.forward(obs)
+        norm = logsumexp(alpha, axis=(1, 2), keepdims=True)  # [T, 1, 1]
+        gamma = np.exp(alpha - norm)
+        state_posterior = gamma.sum(axis=2)  # [T, M]
+        state_posterior /= state_posterior.sum(axis=1, keepdims=True).clip(1e-300)
+        e_idx = np.arange(1, self.hsmm.d_max + 1, dtype=np.float64)
+        expected_dwell = (gamma * e_idx[None, None, :]).sum(axis=2)  # [T, M]
+        denom = gamma.sum(axis=2).clip(1e-300)
+        expected_dwell = np.where(denom > 0, expected_dwell / denom, 0.0)
+        return ForwardBackwardResult(
+            log_likelihood=ll,
+            state_posterior=state_posterior,
+            expected_dwell=expected_dwell,
+            alpha=alpha,
+            beta=np.zeros_like(alpha),
+            alpha_state_marginal=logsumexp(alpha, axis=2),
+            beta_state_marginal=np.zeros_like(state_posterior),
+        )
 
-        ``obs``: event tokens [T] (discrete) or log-emissions [T, M]
-        (ablation A1's continuous emissions).
+    # ------------------------------------------------------------------
+    def run(self, obs: np.ndarray, mode: str = "smoothing") -> ForwardBackwardResult:
+        """Full forward-backward (smoothing) or forward-only (causal).
+
+        ``mode``: "smoothing" (default) uses beta to compute p_t(i) = P(s_t = i | v_0..T-1).
+                  "causal" computes p_t(i) = P(s_t = i | v_0..t) using forward alpha only.
         """
+        if mode == "causal":
+            return self.causal_filter(obs)
         alpha, ll = self.forward(obs)
         beta = self.backward(obs)
         joint = alpha + beta  # [T, M, Dmax]

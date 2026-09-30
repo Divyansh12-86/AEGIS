@@ -39,6 +39,8 @@ class StageStats:
     em_log_likelihood: float = float("nan")
     em_iterations: int = 0
     wall_clock_s: float = 0.0
+    aux_rul_loss: float = float("nan")
+    total_revivals: int = 0
 
 
 @dataclass
@@ -55,11 +57,18 @@ class TrainerConfig:
     n_codes: int = 16
     commitment_beta: float = 0.25
     ema_decay: float = 0.99
+    dead_code_revival: bool = False
+    revival_threshold: float = 1.0
+    revival_interval: int = 10
     # HSMM
     n_states: int = 6
     d_max: int = 12
     em_max_iter: int = 20
     em_restarts: int = 0
+    # auxiliary prognostic objective
+    aux_rul_lambda: float = 0.0
+    # subspace decoupling: if set, z[:, :state_dim] -> VQ, z[:, state_dim:] -> aux_rul
+    state_dim: Optional[int] = None
     # optimization
     lr: float = 1e-3
     batch_size: int = 32
@@ -75,6 +84,8 @@ class Trainer:
         self.config = config
         self.run_id = generate_run_id()
         set_global_seed(config.seed)
+        d_state = config.state_dim if config.state_dim is not None else config.embed_dim
+        d_prog = (config.embed_dim - d_state) if config.state_dim is not None else config.embed_dim
         self.encoder = SensorEncoder(
             n_channels=n_channels,
             hidden=config.hidden,
@@ -89,22 +100,41 @@ class Trainer:
             hidden=config.hidden,
         )
         self.vq = VQCodebook(
-            embed_dim=config.embed_dim,
+            embed_dim=d_state,
             n_codes=config.n_codes,
             commitment_beta=config.commitment_beta,
             ema_decay=config.ema_decay,
         )
+        self.aux_rul = nn.Linear(d_prog, 1)
         self.hsmm: Optional[HSMM] = None
         self.stats: List[StageStats] = []
 
     # ------------------------------------------------------------------
-    def _stage1_batch(self, X: torch.Tensor, mask: torch.Tensor):
+    def _stage1_batch(self, X: torch.Tensor, mask: torch.Tensor, y_rul: Optional[torch.Tensor] = None):
         z = self.encoder(X, mask)
-        out = self.vq(z)
-        X_hat = self.decoder(out.straight_through)
-        recon = ((X_hat - X) ** 2 * mask).sum() / mask.sum().clamp_min(1.0)
-        terms = self.vq.loss_terms(z, out)
-        return recon, terms, out
+        if self.config.state_dim is not None:
+            s_dim = self.config.state_dim
+            z_state = z[:, :s_dim]
+            z_prog = z[:, s_dim:]
+            out = self.vq(z_state)
+            z_recon = torch.cat([out.straight_through, z_prog], dim=-1)
+            X_hat = self.decoder(z_recon)
+            recon = ((X_hat - X) ** 2 * mask).sum() / mask.sum().clamp_min(1.0)
+            terms = self.vq.loss_terms(z_state, out)
+            aux_loss = torch.tensor(0.0, device=X.device)
+            if self.config.aux_rul_lambda > 0.0 and y_rul is not None:
+                pred_rul = self.aux_rul(z_prog).squeeze(-1)
+                aux_loss = torch.nn.functional.huber_loss(pred_rul, y_rul, delta=1.0)
+        else:
+            out = self.vq(z)
+            X_hat = self.decoder(out.straight_through)
+            recon = ((X_hat - X) ** 2 * mask).sum() / mask.sum().clamp_min(1.0)
+            terms = self.vq.loss_terms(z, out)
+            aux_loss = torch.tensor(0.0, device=X.device)
+            if self.config.aux_rul_lambda > 0.0 and y_rul is not None:
+                pred_rul = self.aux_rul(z).squeeze(-1)
+                aux_loss = torch.nn.functional.huber_loss(pred_rul, y_rul, delta=1.0)
+        return recon, terms, aux_loss, out, z
 
     # ------------------------------------------------------------------
     def init_codebook_from_data(self, windows: torch.Tensor, masks: torch.Tensor) -> None:
@@ -115,6 +145,8 @@ class Trainer:
         self.encoder.eval()
         with torch.no_grad():
             z = self.encoder(windows, masks)
+            if self.config.state_dim is not None:
+                z = z[:, :self.config.state_dim]
             z = z[torch.randperm(z.shape[0])[: self.vq.K]]
             if z.shape[0] < self.vq.K:
                 # too few windows: jitter-duplicate
@@ -129,36 +161,60 @@ class Trainer:
             self.vq.ema_cluster_size.fill_(1.0)
 
     # ------------------------------------------------------------------
-    def train_stage1(self, windows: torch.Tensor, masks: torch.Tensor) -> StageStats:
-        """windows: [N, W, d]; masks: [N, W, d]. Fits encoder + VQ + decoder."""
+    def train_stage1(
+        self,
+        windows: torch.Tensor,
+        masks: torch.Tensor,
+        rul_labels: Optional[torch.Tensor] = None,
+    ) -> StageStats:
+        """windows: [N, W, d]; masks: [N, W, d]. Fits encoder + VQ + decoder (+ optional aux RUL)."""
         cfg = self.config
         stats = StageStats(stage="stage1_encoder_vq")
         t0 = time.time()
         # anti-collapse: initialize codebook on the data manifold
         self.init_codebook_from_data(windows, masks)
         params = list(self.encoder.parameters()) + list(self.decoder.parameters())
+        if cfg.aux_rul_lambda > 0.0:
+            params += list(self.aux_rul.parameters())
         opt = torch.optim.AdamW(params, lr=cfg.lr)
         N = windows.shape[0]
         self.encoder.train(); self.decoder.train(); self.vq.train()
+        if cfg.aux_rul_lambda > 0.0:
+            self.aux_rul.train()
         perplexity_hist: List[float] = []
         for step in range(cfg.stage1_steps):
             idx = torch.randint(0, N, (min(cfg.batch_size, N),))
             X, m = windows[idx], masks[idx]
+            y_b = rul_labels[idx] if rul_labels is not None else None
             opt.zero_grad()
-            recon, terms, out = self._stage1_batch(X, m)
-            loss = recon + terms["commitment"]
+            recon, terms, aux_loss, out, z_b = self._stage1_batch(X, m, y_b)
+            loss = recon + terms["commitment"] + cfg.aux_rul_lambda * aux_loss
             loss.backward()
             opt.step()
+
+            # Fixed threshold and fixed revival schedule (training-only)
+            if (
+                cfg.dead_code_revival
+                and step > 0
+                and step % cfg.revival_interval == 0
+                and step < (cfg.stage1_steps - 20)
+            ):
+                n_rev = self.vq.revive_dead_codes(z_b.detach(), threshold=cfg.revival_threshold)
+                stats.total_revivals += n_rev
+
             stats.steps = step + 1
             stats.recon_loss = float(recon.detach())
             stats.commitment_loss = float(terms["commitment"].detach())
+            stats.aux_rul_loss = float(aux_loss.detach()) if cfg.aux_rul_lambda > 0.0 else float("nan")
             stats.perplexity = out.codebook_stats["perplexity"]
             stats.effective_size = out.codebook_stats["effective_size"]
             perplexity_hist.append(stats.perplexity)
             if cfg.log_every and (step + 1) % cfg.log_every == 0:
+                aux_str = f" aux_rul={stats.aux_rul_loss:.4f}" if cfg.aux_rul_lambda > 0.0 else ""
+                rev_str = f" revivals={stats.total_revivals}" if cfg.dead_code_revival else ""
                 print(
                     f"[{self.run_id}] stage1 step {step+1}: recon={stats.recon_loss:.4f} "
-                    f"perplexity={stats.perplexity:.1f} eff={stats.effective_size}"
+                    f"perplexity={stats.perplexity:.1f} eff={stats.effective_size}{aux_str}{rev_str}"
                 )
         # exit criterion: perplexity stable over the last quarter
         tail = perplexity_hist[len(perplexity_hist) // 2:]
@@ -179,6 +235,8 @@ class Trainer:
                 X = windows[i : i + 1]
                 m = masks[i : i + 1]
                 z = self.encoder(X, m)
+                if self.config.state_dim is not None:
+                    z = z[:, :self.config.state_dim]
                 ids = self.vq.event_id(z)
                 seqs.append(ids.reshape(-1).cpu().numpy().astype(np.int64))
         return seqs
@@ -276,13 +334,13 @@ class Trainer:
 
     # ------------------------------------------------------------------
     def pipeline_outputs(
-        self, v_seq: np.ndarray
+        self, v_seq: np.ndarray, mode: str = "smoothing"
     ) -> Tuple[np.ndarray, np.ndarray, float]:
         """Posterior + Viterbi + log-likelihood for one event run."""
         if self.hsmm is None:
             raise RuntimeError("train_stage2 must run before pipeline_outputs")
         fb = ForwardBackward(self.hsmm)
-        res = fb.run(v_seq)
+        res = fb.run(v_seq, mode=mode)
         return res.state_posterior, res.expected_dwell, res.log_likelihood
 
     def viterbi(self, v_seq: np.ndarray):

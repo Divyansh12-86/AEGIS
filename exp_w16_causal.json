@@ -1,0 +1,216 @@
+{
+  "experiment": "rul_readout_study",
+  "dataset": "N-CMAPSS/N-CMAPSS DS01 005.h5",
+  "n_independent_test_units": 2,
+  "test_unit_ids": [
+    "DS01_u2",
+    "DS01_u9"
+  ],
+  "feature_contract": "per-step: state_posterior[M] + dwell[M]/d_max",
+  "feature_mode": "causal",
+  "window_length": 16,
+  "stride": 4,
+  "n_conv_blocks": 3,
+  "heads": {
+    "ridge": "closed-form ridge (reference)",
+    "gru": "1-layer GRU hidden=32, Adam lr=1e-3, ES patience 10 on val RMSE",
+    "tcn": "2 dilated causal convs (d=1,2) width 32, ES same",
+    "tsmixer": "feature-MLP + transpose time-MLP mixer, hidden 32, 1 stack, ES same",
+    "raw_tsmixer": "CONTROL: raw sensor windows -> same TSMixer (ceiling ref)",
+    "z_tsmixer": "CONTROL: encoder z seq -> same TSMixer (info-loss probe)"
+  },
+  "results": {
+    "ridge": {
+      "rmse": {
+        "mean": 19.088443264312755,
+        "std": 1.6439662387628728,
+        "per_seed": [
+          19.397151835937972,
+          20.929699600500857,
+          16.938478356499438
+        ]
+      },
+      "mae": {
+        "mean": 14.690040780882157,
+        "std": 1.0096461668147931,
+        "per_seed": [
+          15.061274596209989,
+          15.698457861014889,
+          13.310389885421595
+        ]
+      },
+      "epochs_per_seed": [
+        0,
+        0,
+        0
+      ],
+      "params": 0,
+      "early_stop": false
+    },
+    "ridge_DS01_u2": {
+      "rmse": {
+        "mean": 21.300250923530438,
+        "std": 1.984037116969555,
+        "per_seed": [
+          18.661260736627952,
+          23.445217407972056,
+          21.794274625991303
+        ]
+      },
+      "mae": {
+        "mean": 16.3668231953158,
+        "std": 1.470591160459333,
+        "per_seed": [
+          14.3605383798641,
+          16.895546514789864,
+          17.844384691293428
+        ]
+      },
+      "epochs_per_seed": [
+        0,
+        0,
+        0
+      ],
+      "params": 0,
+      "early_stop": false
+    },
+    "ridge_DS01_u9": {
+      "rmse": {
+        "mean": 16.26546184599435,
+        "std": 4.155435095434002,
+        "per_seed": [
+          20.065116117788424,
+          18.24808648824918,
+          10.483182931945432
+        ]
+      },
+      "mae": {
+        "mean": 13.11189262612109,
+        "std": 2.9150590737507227,
+        "per_seed": [
+          15.720791035123773,
+          14.571786186873737,
+          9.043100656365755
+        ]
+      },
+      "epochs_per_seed": [
+        0,
+        0,
+        0
+      ],
+      "params": 0,
+      "early_stop": false
+    }
+  },
+  "diagnostics": [
+    {
+      "seed": 0,
+      "vq_perplexity": 7.5377291991306015,
+      "vq_effective_size": 9,
+      "vq_codebook_utilization": 0.75,
+      "event_token_distribution_test": [
+        0,
+        8,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6,
+        0,
+        3,
+        0,
+        0,
+        9,
+        4
+      ],
+      "mean_state_occupancy_test": [
+        0.1310795235196565,
+        0.36575437632480384,
+        0.1735703734679217,
+        0.11547972066838412,
+        0.21411600601923372
+      ],
+      "eval_windows_per_engine": {
+        "DS01_u2": 16,
+        "DS01_u9": 17
+      },
+      "total_eval_windows": 33
+    },
+    {
+      "seed": 1,
+      "vq_perplexity": 4.840748995633304,
+      "vq_effective_size": 7,
+      "vq_codebook_utilization": 0.5,
+      "event_token_distribution_test": [
+        4,
+        0,
+        5,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        8,
+        5,
+        0,
+        8,
+        0,
+        0,
+        0
+      ],
+      "mean_state_occupancy_test": [
+        0.17434560979057168,
+        0.1649855432564892,
+        0.1674452213429685,
+        0.12217537549627668,
+        0.3710482501136939
+      ],
+      "eval_windows_per_engine": {
+        "DS01_u2": 16,
+        "DS01_u9": 17
+      },
+      "total_eval_windows": 33
+    },
+    {
+      "seed": 2,
+      "vq_perplexity": 6.063138571457558,
+      "vq_effective_size": 7,
+      "vq_codebook_utilization": 0.5625,
+      "event_token_distribution_test": [
+        0,
+        0,
+        0,
+        0,
+        4,
+        0,
+        0,
+        0,
+        4,
+        10,
+        5,
+        0,
+        0,
+        9,
+        1,
+        0
+      ],
+      "mean_state_occupancy_test": [
+        0.2806686324786765,
+        0.17408110983020797,
+        0.41102336445021104,
+        0.012899608733201402,
+        0.1213272845077031
+      ],
+      "eval_windows_per_engine": {
+        "DS01_u2": 16,
+        "DS01_u9": 17
+      },
+      "total_eval_windows": 33
+    }
+  ],
+  "wall_clock_s": 46.823662996292114
+}
