@@ -1,0 +1,14 @@
+Experiment,Metric,DS01,DS02,MIMII_id_00,MIMII_id_02,MIMII_id_04,MIMII_id_06,Notes
+Event_Coherence,Silhouette,-0.003,-0.003,,,,"Weak but consistent (~0)"
+Event_Coherence,Within_Between_Ratio,0.97,0.97,,,,"<1 = coherent"
+Event_Stability,Matched_Usage_Overlap,0.91,0.93,0.76,0.66,0.66,0.66,"0.66-0.93 across IDs/seeds"
+Cross_Unit_Consistency,JSD,0.22,0.48,0.02,0.02,0.02,0.02,"Lower = more consistent"
+Temporal_Validity,Detection_Rate,1.00,1.00,0.14,0.60,0.21,0.68,"DS: true onsets; MIMII: first-detection-lag proxy"
+Temporal_Validity,Mean_Lag,2.0,1.4,14.6,13.2,16.0,2.2,"MIMII: proxy at 99th pct threshold"
+Explanation_Faithfulness,Score_Reduction,0.18,0.33,0.72,0.72,,,"Positive = faithful (N-CMAPSS)"
+Explanation_Faithfulness,Reduction_Percent,6.7%,12.4%,27.3%,27.3%,,,"Mean reduction vs original"
+Anomaly_Rank_Correlation,Spearman,NaN,NaN,-0.06,-0.06,,,"N-CMAPSS: no anomalous runs in splits"
+Event_Dictionary_Codes_Used,Count,11,8,-,-,-,-,"DS01: 11/16, DS02: 8/16"
+Event_Dictionary_Unused_Codes,Count,5,8,-,-,-,-
+State_Stability_Across_Seeds,Overlap,0.91,0.93,0.76,0.66,0.66,0.66,"Hungarian-matched usage"
+Cross_Unit_JSD,Train_vs_Val,0.22,0.48,0.02,0.02,0.02,0.02,"Low = consistent"

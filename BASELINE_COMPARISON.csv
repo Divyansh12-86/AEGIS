@@ -1,0 +1,12 @@
+Baseline,Dataset,Task,RMSE,AUROC,AUPRC,MAE,Onset_F1,Notes
+CNN-RUL,N-CMAPSS DS01,RUL,34.0,,,,CNN-RUL baseline (M9)
+CNN-RUL,N-CMAPSS DS02,RUL,28.9,,,,CNN-RUL baseline (M9)
+LSTM-RUL,N-CMAPSS DS01,RUL,38.8,,,,LSTM-RUL baseline (M9) per-timestep
+LSTM-RUL,N-CMAPSS DS02,RUL,41.2,,,,LSTM-RUL baseline (M9) per-timestep
+continuous_AE,MIMII fan,Anomaly,,0.638,0.638,,Continuous AE reconstruction (baseline i)
+pooled_events,MIMII fan,Anomaly,,0.626,0.626,,VQ pooled unigram (A2)
+vq_markov,MIMII fan,Anomaly,,0.361,0.361,,VQ + 1st-order Markov (baseline ii)
+vq_hsmm,MIMII fan,Anomaly,,0.559,0.559,,VQ + HSMM (baseline iii / primary)
+continuous_hsmm,MIMII fan,Anomaly,,0.697,0.697,,Continuous HSMM on embeddings (A1)
+grammarviz,MIMII fan,Anomaly,,0.152,0.152,,SAX + Sequitur (GrammarViz, §21)
+concept_bottleneck,MIMII fan,Anomaly,,0.414,0.414,,k-means concepts + nearest-normal (CBM, §21)
