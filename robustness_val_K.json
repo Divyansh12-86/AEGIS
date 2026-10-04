@@ -1,0 +1,32 @@
+{
+  "VQ_codebook_size": {
+    "DS01": {
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  }
+}

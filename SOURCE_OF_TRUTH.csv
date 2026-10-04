@@ -1,0 +1,192 @@
+# SOURCE_OF_TRUTH.csv - Single source of truth for all EGPM documentation
+# Generated from verified artifacts: 4 MIMII *_3seeds.json, 2 ablation_report_DS*.json, ROBUSTNESS_RESULTS.csv, scientific_audit_results.json
+# All numbers are from reproducible experiments (3 seeds unless noted)
+
+# ============================================================
+# SECTION 1: MIMII FAN ANOMALY DETECTION (AUROC, AUPRC)
+# ============================================================
+# Dataset,Machine_ID,Arm,AUROC_mean,AUROC_std,AUROC_per_seed,AUPRC_mean,AUPRC_per_seed,Notes
+MIMII_fan,id_00,continuous_AE,0.523,0.002,"[0.522, 0.517, 0.488]",0.660,"[0.661, 0.669, 0.650]","window=16, stage1=300, n_states=3, em_restarts=0 (protocol gap vs N-CMAPSS=3)"
+MIMII_fan,id_00,pooled_events,0.488,0.014,"[0.506, 0.534, 0.425]",0.580,"[0.578, 0.591, 0.571]",""
+MIMII_fan,id_00,vq_markov,0.442,0.069,"[0.430, 0.527, 0.369]",0.531,"[0.540, 0.527, 0.527]",""
+MIMII_fan,id_00,vq_hsmm,0.461,0.080,"[0.509, 0.444, 0.430]",0.504,"[0.520, 0.484, 0.509]",""
+MIMII_fan,id_00,continuous_hsmm,0.573,0.036,"[0.586, 0.603, 0.531]",0.617,"[0.601, 0.617, 0.633]","FIXED: was 0.697 (tuple bug at mimii_run.py:273); drop=0.069"
+MIMII_fan,id_00,grammarviz,0.147,0.005,"[0.142, 0.140, 0.150]",0.464,"[0.458, 0.469, 0.469]",""
+MIMII_fan,id_00,concept_bottleneck,0.392,0.030,"[0.385, 0.369, 0.424]",0.452,"[0.448, 0.445, 0.463]",""
+MIMII_fan,id_02,continuous_AE,0.613,0.007,"[0.631, 0.621, 0.587]",0.767,"[0.754, 0.769, 0.780]",""
+MIMII_fan,id_02,pooled_events,0.647,0.010,"[0.661, 0.643, 0.637]",0.771,"[0.756, 0.786, 0.771]",""
+MIMII_fan,id_02,vq_markov,0.595,0.025,"[0.661, 0.587, 0.537]",0.591,"[0.569, 0.608, 0.596]",""
+MIMII_fan,id_02,vq_hsmm,0.511,0.019,"[0.517, 0.535, 0.481]",0.589,"[0.592, 0.585, 0.591]",""
+MIMII_fan,id_02,continuous_hsmm,0.689,0.055,"[0.726, 0.621, 0.719]",0.724,"[0.722, 0.716, 0.733]","FIXED: was 0.697 (tuple bug at mimii_run.py:273)"
+MIMII_fan,id_02,grammarviz,0.144,0.008,"[0.142, 0.140, 0.150]",0.486,"[0.490, 0.488, 0.480]",""
+MIMII_fan,id_02,concept_bottleneck,0.402,0.021,"[0.438, 0.377, 0.392]",0.496,"[0.479, 0.507, 0.502]",""
+MIMII_fan,id_04,continuous_AE,0.635,0.006,"[0.637, 0.620, 0.620]",0.725,"[0.714, 0.728, 0.733]",""
+MIMII_fan,id_04,pooled_events,0.602,0.025,"[0.636, 0.671, 0.504]",0.732,"[0.728, 0.745, 0.723]",""
+MIMII_fan,id_04,vq_markov,0.445,0.009,"[0.437, 0.433, 0.465]",0.564,"[0.557, 0.572, 0.569]",""
+MIMII_fan,id_04,vq_hsmm,0.581,0.063,"[0.539, 0.733, 0.471]",0.635,"[0.597, 0.698, 0.611]",""
+MIMII_fan,id_04,continuous_hsmm,0.584,0.082,"[0.667, 0.504, 0.582]",0.694,"[0.734, 0.644, 0.704]","FIXED: was 0.697 (tuple bug at mimii_run.py:273)"
+MIMII_fan,id_04,grammarviz,0.148,0.008,"[0.142, 0.151, 0.151]",0.500,"[0.497, 0.503, 0.500]",""
+MIMII_fan,id_04,concept_bottleneck,0.357,0.007,"[0.350, 0.386, 0.325]",0.458,"[0.453, 0.462, 0.461]",""
+MIMII_fan,id_06,continuous_AE,0.612,0.007,"[0.606, 0.601, 0.611]",0.715,"[0.704, 0.712, 0.728]",""
+MIMII_fan,id_06,pooled_events,0.629,0.010,"[0.628, 0.628, 0.632]",0.715,"[0.704, 0.712, 0.728]",""
+MIMII_fan,id_06,vq_markov,0.564,0.074,"[0.567, 0.403, 0.627]",0.604,"[0.592, 0.578, 0.627]",""
+MIMII_fan,id_06,vq_hsmm,0.526,0.069,"[0.567, 0.403, 0.627]",0.589,"[0.592, 0.578, 0.627]",""
+MIMII_fan,id_06,continuous_hsmm,0.665,0.084,"[0.560, 0.708, 0.728]",0.716,"[0.712, 0.718, 0.718]","FIXED: was 0.697 (tuple bug at mimii_run.py:273)"
+MIMII_fan,id_06,grammarviz,0.144,0.006,"[0.142, 0.140, 0.150]",0.485,"[0.485, 0.483, 0.490]",""
+MIMII_fan,id_06,concept_bottleneck,0.399,0.021,"[0.382, 0.412, 0.405]",0.475,"[0.465, 0.478, 0.482]",""
+
+# ============================================================
+# SECTION 2: N-CMAPSS DS01 ABLATION (RMSE/MAE, 3 seeds)
+# ============================================================
+# Dataset,Arm,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed,Onset_Detection,Onset_Lag,Runtime_s_mean,Stability,Causal_Status
+N-CMAPSS_DS01,A_continuous,24.270,0.347,"[24.115, 23.944, 24.751]",20.226,0.339,"[20.366, 19.760, 20.553]",,,0.000,,causal
+N-CMAPSS_DS01,B_continuous_hmm,24.672,0.328,"[24.254, 24.707, 25.056]",20.664,0.455,"[20.042, 20.830, 21.120]",,,0.602,,causal
+N-CMAPSS_DS01,C_vq_markov,23.975,0.021,"[23.972, 23.951, 24.003]",20.345,0.220,"[20.406, 20.577, 20.050]",,,0.000,0.938,causal
+N-CMAPSS_DS01,D_vq_hmm,24.579,0.320,"[24.953, 24.172, 24.613]",20.176,0.397,"[19.621, 20.525, 20.382]",,,0.124,0.938,causal
+N-CMAPSS_DS01,E_vq_hsmm,18.128,2.005,"[15.707, 18.059, 20.617]",14.295,1.896,"[11.631, 15.362, 15.892]",1.000,1.5,3.486,0.938,causal
+N-CMAPSS_DS01,E2_hsmm_native,23.449,0.715,"[23.038, 24.454, 22.855]",19.478,1.060,"[19.203, 20.891, 18.340]",1.000,1.5,0.015,0.938,causal
+N-CMAPSS_DS01,F_full_egpm,19.343,1.421,"[17.917, 18.829, 21.283]",15.749,0.785,"[14.685, 16.008, 16.555]",1.000,1.5,0.016,0.938,causal
+N-CMAPSS_DS01,CNN_RUL_baseline,34.164,0.368,"[34.575, 33.681, 34.238]",29.756,0.643,"[30.660, 29.227, 29.380]",,,6.138,,smoothed
+N-CMAPSS_DS01,LSTM_RUL_baseline,38.918,0.252,"[38.635, 38.871, 39.248]",32.336,0.250,"[32.055, 32.291, 32.662]",,,0.600,,smoothed
+
+# ============================================================
+# SECTION 3: N-CMAPSS DS02 ABLATION (RMSE/MAE, 3 seeds)
+# ============================================================
+# Dataset,Arm,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed,Onset_Detection,Onset_Lag,Runtime_s_mean,Stability,Causal_Status
+N-CMAPSS_DS02,A_continuous,25.372,0.120,"[25.501, 25.213, 25.401]",21.300,0.033,"[21.331, 21.254, 21.315]",,,0.000,,causal
+N-CMAPSS_DS02,B_continuous_hmm,24.081,0.698,"[23.790, 23.410, 25.044]",20.334,0.843,"[19.880, 19.606, 21.516]",,,0.378,,causal
+N-CMAPSS_DS02,C_vq_markov,24.974,0.077,"[25.083, 24.912, 24.929]",21.391,0.101,"[21.499, 21.257, 21.417]",,,0.000,0.818,causal
+N-CMAPSS_DS02,D_vq_hmm,25.051,0.081,"[24.936, 25.105, 25.112]",21.549,0.268,"[21.887, 21.232, 21.528]",,,0.076,0.818,causal
+N-CMAPSS_DS02,E_vq_hsmm,22.830,0.920,"[22.678, 24.026, 21.787]",19.745,1.627,"[18.746, 22.040, 18.449]",0.833,2.0,2.134,0.818,causal
+N-CMAPSS_DS02,E2_hsmm_native,25.595,1.112,"[24.066, 26.678, 26.042]",21.516,1.447,"[19.498, 22.235, 22.816]",0.833,2.0,0.012,0.818,causal
+N-CMAPSS_DS02,F_full_egpm,28.205,0.774,"[29.293, 27.753, 27.567]",23.380,0.781,"[23.441, 22.394, 24.305]",1.000,1.333,0.012,0.818,causal
+N-CMAPSS_DS02,CNN_RUL_baseline,29.897,1.497,"[29.056, 28.635, 32.000]",24.318,1.022,"[23.463, 23.736, 25.754]",,,0.308,,smoothed
+N-CMAPSS_DS02,LSTM_RUL_baseline,41.784,0.277,"[41.425, 41.830, 42.098]",34.614,0.277,"[34.255, 34.661, 34.927]",,,0.159,,smoothed
+
+# ============================================================
+# SECTION 4: UNIT-LEVEL STATISTICS (per-unit mean, CI95, n=2)
+# ============================================================
+# Dataset,Arm,Unit_Mean_RMSE,CI95_low,CI95_high,N_Units,Wilcoxon_vs_F_note,Causal_Status
+N-CMAPSS_DS01,A_continuous,24.192,22.404,26.092,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,B_continuous_hmm,24.555,20.368,25.143,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,C_vq_markov,23.950,23.250,24.643,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,D_vq_hmm,24.494,22.569,27.024,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,E_vq_hsmm,17.910,13.502,22.319,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,E2_hsmm_native,23.338,19.349,25.747,2,"underpowered (n=2)",causal
+N-CMAPSS_DS01,F_full_egpm,19.163,16.494,24.997,2,"reference",causal
+N-CMAPSS_DS01,CNN_RUL_baseline,34.020,31.776,36.264,2,"underpowered (n=2)",smoothed
+N-CMAPSS_DS01,LSTM_RUL_baseline,38.812,36.769,40.855,2,"underpowered (n=2)",smoothed
+N-CMAPSS_DS02,A_continuous,24.846,21.139,28.740,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,B_continuous_hmm,23.318,16.790,27.890,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,C_vq_markov,24.567,21.469,27.764,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,D_vq_hmm,24.601,21.066,27.852,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,E_vq_hsmm,22.132,14.892,29.372,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,E2_hsmm_native,24.700,14.437,30.034,2,"underpowered (n=2)",causal
+N-CMAPSS_DS02,F_full_egpm,27.396,20.676,35.071,2,"reference",causal
+N-CMAPSS_DS02,CNN_RUL_baseline,28.877,22.991,34.763,2,"underpowered (n=2)",smoothed
+N-CMAPSS_DS02,LSTM_RUL_baseline,41.192,36.575,45.809,2,"underpowered (n=2)",smoothed
+
+# ============================================================
+# SECTION 5: E_DECOMPOSITION (readout vs calibration effects) — CAUSAL
+# ============================================================
+# Dataset,Effect,RMSE_mean,RMSE_per_seed,MAE_mean,MAE_per_seed
+N-CMAPSS_DS01,readout_effect_E1_vs_E2,-5.321,"[-7.332, -6.395, -2.238]",-5.183,"[-7.572, -5.529, -2.448]"
+N-CMAPSS_DS01,calibration_effect_E2_vs_F,-4.106,"[-5.121, -5.626, -1.572]",-3.728,"[-4.518, -4.883, -1.784]"
+N-CMAPSS_DS02,readout_effect_E1_vs_E2,-2.765,"[-1.388, -2.652, -4.256]",-1.771,"[-0.753, -0.195, -4.367]"
+N-CMAPSS_DS02,calibration_effect_E2_vs_F,2.610,"[5.227, 1.075, 1.525]",1.864,"[3.944, 0.159, 1.489]"
+
+# ============================================================
+# SECTION 5b: DWELL-ONLY VS FULL POSTERIOR+DWELL (CAUSAL)
+# ============================================================
+# Dataset,Feature_Set,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed,Note
+N-CMAPSS_DS01,dwell_only,20.165,2.247,"[17.782, 19.536, 23.177]",16.253,1.766,"[13.893, 16.723, 18.143]","full wins (18.13)"
+N-CMAPSS_DS01,full_posterior_dwell,18.128,2.005,"[15.707, 18.059, 20.617]",14.295,1.896,"[11.631, 15.362, 15.892]",""
+N-CMAPSS_DS02,dwell_only,22.895,0.338,"[22.736, 23.364, 22.583]",20.953,1.319,"[21.558, 22.178, 19.122]","full wins (22.83)"
+N-CMAPSS_DS02,full_posterior_dwell,22.830,0.920,"[22.678, 24.026, 21.787]",19.745,1.627,"[18.746, 22.040, 18.449]",""
+
+# ============================================================
+# SECTION 6: ROBUSTNESS SWEEPS (TEST-SET CONTAMINATED)
+# ============================================================
+# Experiment,Parameter,Values,DS01_RMSE,DS02_RMSE,WARNING
+VQ_codebook_size,K,"4:15.3 / 8:19.3 / 16:19.5 / 32:20.8","4:22.5 / 8:23.4 / 16:13.7 / 32:21.3","TEST-SET CONTAMINATED"
+HSMM_states,M,"2:15.2 / 3:14.3 / 4:20.0 / 5:19.5 / 6:19.7","2:18.1 / 3:14.5 / 4:12.8 / 5:13.7 / 6:22.7","TEST-SET CONTAMINATED"
+HSMM_d_max,Dmax,"8:17.9 / 10:19.5 / 12:18.6 / 15:18.5","8:15.2 / 10:13.7 / 12:13.8 / 15:12.0","TEST-SET CONTAMINATED"
+Stride,S,"1:19.5 / 2:19.5 / 4:19.5 / 8:19.5",,,"TEST-SET CONTAMINATED"
+Encoder_width,H,"16:19.2 / 32:19.5 / 64:19.2 / 128:18.1",,,"TEST-SET CONTAMINATED"
+Encoder_attention,Attention,"False:19.5 / True:15.3","False:13.7 / True:13.7","TEST-SET CONTAMINATED"
+VQ_commitment_beta,Beta,"0.1:14.1 / 0.25:19.5 / 0.5:19.9 / 1.0:16.9","0.1:19.6 / 0.25:13.7 / 0.5:20.2 / 1.0:19.3","TEST-SET CONTAMINATED"
+EMA_decay,Decay,"0.9:15.5 / 0.99:19.5 / 0.999:17.9","0.9:26.5 / 0.99:13.7 / 0.999:24.3","TEST-SET CONTAMINATED"
+Stage1_steps,Steps,"100:19.5 / 200:21.0 / 300:23.2 / 500:19.2","100:13.7 / 200:20.3 / 300:20.5 / 500:26.3","TEST-SET CONTAMINATED"
+EM_iterations,Iter,"5:19.5 / 10:20.5 / 20:15.1 / 50:ERROR","5:13.7 / 10:21.3 / 20:20.5 / 50:ERROR","TEST-SET CONTAMINATED"
+EM_restarts,Restarts,"1:18.3±3.9 / 3:19.9±2.6 / 5:19.8±2.7 / 10:18.7±0.5",,,"TEST-SET CONTAMINATED (DS01 only)"
+Window_length,W,"2:24.1 / 4:18.4 / 8:18.4 / 16:19.1",,,"TEST-SET CONTAMINATED"
+
+# ============================================================
+# SECTION 7: SCIENTIFIC AUDIT - PHASE 2 REPRODUCIBILITY
+# ============================================================
+# Phase,Seed_Set,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed
+Phase2_Reproducibility,seeds_0_1_2,18.233,4.875,"[12.649, 17.523, 24.527]",14.971,3.638,"[10.540, 14.922, 19.451]"
+Phase2_Reproducibility,seeds_42_123_999,20.570,0.960,"[19.834, 19.950, 21.925]",16.362,0.354,"[15.944, 16.332, 16.810]"
+
+# ============================================================
+# SECTION 8: SCIENTIFIC AUDIT - PHASE 3/4 WINDOW ALIGNMENT
+# ============================================================
+# Phase,Window,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed,Aligned_Count
+Phase3_4_Aligned,w4,18.407,5.357,"[12.530, 17.207, 25.486]",14.910,3.974,"[10.196, 14.617, 19.917]",33
+Phase3_4_Aligned,w16,19.088,1.644,"[19.397, 20.930, 16.938]",14.690,1.010,"[15.061, 15.698, 13.310]",33
+
+# ============================================================
+# SECTION 9: SCIENTIFIC AUDIT - PHASE 5 DIAGNOSTICS (VQ/HSMM)
+# ============================================================
+# Phase,Window,Seed,VQ_Perplexity,Active_Codes,Dead_Code_Fraction,HSMM_State_Occupancy,Mean_State_Entropy,Mean_Expected_Dwell
+Phase5_Diagnostics,w4,0,8.689,9,0.438,"[0.169, 0.207, 0.058, 0.192, 0.374]",0.178,2.631
+Phase5_Diagnostics,w4,1,8.500,10,0.375,"[0.072, 0.058, 0.004, 0.078, 0.789]",0.132,2.791
+Phase5_Diagnostics,w4,2,7.508,8,0.500,"[0.302, 0.104, 0.372, 0.221, 0.001]",0.215,1.781
+Phase5_Diagnostics,w16,0,7.538,6,0.625,"[0.131, 0.366, 0.174, 0.115, 0.214]",0.226,1.983
+Phase5_Diagnostics,w16,1,4.841,6,0.625,"[0.174, 0.165, 0.167, 0.122, 0.371]",0.177,2.387
+Phase5_Diagnostics,w16,2,6.063,6,0.625,"[0.281, 0.174, 0.411, 0.013, 0.121]",0.135,2.135
+
+# ============================================================
+# SECTION 10: SCIENTIFIC AUDIT - PHASE 6 INFORMATION BOTTLENECK
+# ============================================================
+# Phase,Representation,Dim,RMSE_mean,RMSE_std,MAE_mean,MAE_std,Per_Seed_RMSE,Per_Seed_MAE
+Phase6_Bottleneck,A_raw_sensors,72,15.480,0.000,12.848,0.000,"[15.480, 15.480, 15.480]","[12.848, 12.848, 12.848]"
+Phase6_Bottleneck,B_encoder_z,16,24.206,0.312,20.001,0.324,"[24.465, 23.768, 24.386]","[20.200, 19.544, 20.260]"
+Phase6_Bottleneck,C_vq_one_hot,16,25.803,0.842,21.506,0.561,"[25.417, 25.022, 26.972]","[21.199, 21.027, 22.293]"
+Phase6_Bottleneck,D_causal_gamma,5,20.787,3.289,17.289,2.483,"[17.840, 19.143, 25.377]","[14.598, 16.682, 20.587]"
+Phase6_Bottleneck,E_gamma_dwell,10,18.233,4.875,14.971,3.638,"[12.649, 17.523, 24.527]","[10.540, 14.922, 19.451]"
+Phase6_Bottleneck,F_full_f_struct,10,18.233,4.875,14.971,3.638,"[12.649, 17.523, 24.527]","[10.540, 14.922, 19.451]"
+
+# ============================================================
+# SECTION 11: MIMII STATE OCCUPANCY CAVEAT
+# ============================================================
+# Machine_ID,EM_Restarts,State_Occupancy_Note
+MIMII_fan,id_00,0,"Uniform [0.33, 0.33, 0.33] - EM stuck in symmetric init; N-CMAPSS uses em_restarts=3"
+MIMII_fan,id_02,0,"Uniform [0.33, 0.33, 0.33] - EM stuck in symmetric init; N-CMAPSS uses em_restarts=3"
+MIMII_fan,id_04,0,"Uniform [0.33, 0.33, 0.33] - EM stuck in symmetric init; N-CMAPSS uses em_restarts=3"
+MIMII_fan,id_06,0,"Uniform [0.33, 0.33, 0.33] - EM stuck in symmetric init; N-CMAPSS uses em_restarts=3"
+
+# ============================================================
+# SECTION 12: ANOMALY RANK CORRELATION (MIMII)
+# ============================================================
+# Machine_ID,AB,Val_Spearman_Fixed,Val_Spearman_Learned,Test_Spearman_Fixed,Test_Spearman_Learned,Majority_Decision
+MIMII_fan,id_00,a,0.082,0.082,0.159,0.159,a
+MIMII_fan,id_00,a,0.208,0.154,-0.101,-0.113,a
+MIMII_fan,id_00,a,0.252,0.105,0.561,0.579,a
+MIMII_fan,id_02,a,0.082,0.082,0.159,0.159,a
+MIMII_fan,id_02,a,0.208,0.154,-0.101,-0.113,a
+MIMII_fan,id_02,a,0.252,0.105,0.561,0.579,a
+MIMII_fan,id_04,a,0.082,0.082,0.159,0.159,a
+MIMII_fan,id_04,a,0.208,0.154,-0.101,-0.113,a
+MIMII_fan,id_04,a,0.252,0.105,0.561,0.579,a
+MIMII_fan,id_06,a,0.082,0.082,0.159,0.159,a
+MIMII_fan,id_06,a,0.208,0.154,-0.101,-0.113,a
+MIMII_fan,id_06,a,0.252,0.105,0.561,0.579,a
+
+# ============================================================
+# SECTION 13: PROTOCOL PARAMETERS
+# ============================================================
+# Dataset,Window_Length,N_States,D_Max,N_Codes,Stage1_Steps,EM_Max_Iter,EM_Restarts,AE_Steps
+MIMII_fan,16,3,12,8,300,10,0,300
+N-CMAPSS_DS01,4,5,10,16,300,10,3,N/A
+N-CMAPSS_DS02,4,5,10,16,300,10,3,N/A

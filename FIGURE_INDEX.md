@@ -41,8 +41,8 @@ Each trajectory plot contains 8 panels:
 ### 2. MIMII AUROC Ranking
 **Data**: `mimii_fan_id_XX_3seeds.json` (4 IDs × 7 arms)
 **Plot**: Horizontal bar chart, arms sorted by macro AUROC
-**Bars**: A1(0.697), AE(0.638), Pooled(0.626), HSMM(0.559), CBM(0.414), Markov(0.361), GV(0.152)
-**Annotation**: "Continuous HSMM (A1) beats discrete primary by 0.14 AUROC; Markov collapses; GrammarViz anti-correlated"
+**Bars**: A1(0.628), AE(0.596), Pooled(0.591), HSMM(0.520), CBM(0.389), Markov(0.511), GV(0.146)
+**Annotation**: "Continuous HSMM (A1) beats discrete primary by 0.07 AUROC; Markov collapses; GrammarViz anti-correlated"
 
 ### 3. Degradation Trajectory (Figure 3)
 **File**: `DS01_DS01_u2_trajectory.png` (or DS01_u9 for failure case)

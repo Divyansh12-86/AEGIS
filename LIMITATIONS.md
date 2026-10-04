@@ -9,7 +9,7 @@
 - **Mitigation**: Add absorbing reachability constraint during HSMM fitting; investigate geometric-dwell encoding
 
 ### 2. Discretization Loses Acoustic Information on MIMII
-- **Observation**: Continuous-HSMM (A1) AUROC=0.697 vs VQ+HSMM=0.559 (macro)
+- **Observation**: Continuous-HSMM (A1) AUROC=0.628 vs VQ+HSMM=0.559 (macro)
 - **Root Cause**: VQ bottleneck (K=8) discards fine-grained spectral detail needed for acoustic anomaly discrimination
 - **Impact**: EGPM primary architecture unsuitable for acoustic anomaly tasks without late-fusion
 - **Mitigation**: Late-fusion architecture (continuous anomaly head + discrete grammar explanation)
@@ -39,17 +39,17 @@
 - **Mitigation**: Use DS01 for fault evaluation; collect balanced data
 
 ### 7. Native Phase-Type RUL Loses to Ridge on Both Datasets
-- **Observation**: DS01: 24.0 vs 19.9; DS02: 19.98 vs 18.5 (ridge better)
+- **Observation**: DS01: 23.4 vs 18.1; DS02: 25.6 vs 22.8 (ridge better on both, causal)
 - **Root Cause**: Fundamental matrix (I-Q)⁻¹ assumes reachability; mid-dwell correction insufficient
 - **Impact**: Phase-type formula not production-ready; use ridge decoder
 
 ### 8. Absorbing Calibration Hurts RUL
-- **Observation**: Arm F (calibrated) worse than E on both datasets (DS01: 22.9 vs 19.9; DS02: 24.4 vs 18.5)
+- **Observation**: Arm F (calibrated) worse than E on both datasets (DS01: 19.3 vs 18.1; DS02: 28.2 vs 22.8, causal)
 - **Root Cause**: Single-knob calibration overfits to train-unit lifespan distribution
 - **Impact**: Calibration knob should be disabled in production
 
 ### 9. MIMII Anomaly: Continuous Beats Discrete
-- **Observation**: Continuous-AE (0.638) and Continuous-HSMM (0.697) both beat VQ+HSMM (0.559)
+- **Observation**: Continuous-AE (0.621) and Continuous-HSMM (0.628) both beat VQ+HSMM (0.559)
 - **Implication**: VQ bottleneck discards fine-grained spectral info critical for acoustic anomaly
 - **Implication**: For acoustic anomaly, continuous representations preferred
 
@@ -111,7 +111,7 @@
 
 | Works | Doesn't Work |
 |-------|--------------|
-| VQ+HSMM+ridge RUL (19.9/18.5 RMSE) | Native phase-type RUL |
+| VQ+HSMM+ridge RUL (18.1/22.8 RMSE causal) | Native phase-type RUL |
 | Explicit duration (15% gain) | Absorbing calibration |
 | Dwell features for RUL | Joint multi-task (frozen rep) |
 | Faithfulness masking | Learned health weights |

@@ -191,13 +191,13 @@ Per-ID JSONs: `mimii_fan_<id>_3seeds.json`, `mimii_fan_<id>_interpretability.jso
 
 | Arm (AUROC, mean±std over 3 seeds) | id_00 | id_02 | id_04 | id_06 | macro |
 |---|---|---|---|---|---|
-| continuous AE (baseline i) | 0.530±0.006 | 0.681±0.015 | 0.662±0.005 | 0.678±0.008 | **0.638** |
-| VQ pooled unigram (A2) | 0.474±0.007 | 0.750±0.022 | 0.671±0.007 | 0.608±0.053 | **0.626** |
-| VQ + first-order Markov (baseline ii) | 0.457±0.018 | 0.391±0.028 | 0.337±0.012 | 0.259±0.020 | **0.361** |
-| VQ + HSMM (baseline iii / primary) | 0.481±0.010 | 0.517±0.202 | 0.649±0.081 | 0.587±0.180 | **0.559** |
-| continuous-HSMM on embeddings (A1) | 0.565±0.025 | 0.664±0.056 | 0.755±0.007 | 0.804±0.039 | **0.697** |
-| GrammarViz (SAX + Sequitur) | 0.154±0.001 | 0.151±0.001 | 0.151±0.001 | 0.151±0.001 | **0.152** |
-| Concept Bottleneck (k-means) | 0.432±0.002 | 0.402±0.002 | 0.386±0.002 | 0.434±0.002 | **0.414** |
+| continuous AE (baseline i) | 0.523±0.002 | 0.613±0.007 | 0.635±0.006 | 0.612±0.007 | **0.596** |
+| VQ pooled unigram (A2) | 0.488±0.014 | 0.647±0.010 | 0.602±0.025 | 0.629±0.010 | **0.591** |
+| VQ + first-order Markov (baseline ii) | 0.442±0.069 | 0.595±0.025 | 0.445±0.009 | 0.564±0.074 | **0.511** |
+| VQ + HSMM (baseline iii / primary) | 0.461±0.080 | 0.511±0.019 | 0.581±0.063 | 0.526±0.069 | **0.520** |
+| continuous-HSMM on embeddings (A1) | 0.573±0.036 | 0.689±0.055 | 0.584±0.082 | 0.665±0.084 | **0.628** |
+| GrammarViz (SAX + Sequitur) | 0.147±0.005 | 0.144±0.008 | 0.148±0.008 | 0.144±0.006 | **0.146** |
+| Concept Bottleneck (k-means) | 0.392±0.030 | 0.402±0.021 | 0.357±0.007 | 0.399±0.021 | **0.388** |
 
 Interpretability suite on the same tokenization (per ID): silhouette ~0 (weak but
 consistent), matched usage overlap across seeds 0.66–0.93 (stability), cross-unit
@@ -266,7 +266,7 @@ TSMixer on frozen event/state features is the strongest readout on both datasets
 - **Structure beats no-structure:** on MIMII the Markov arm (no states) collapses to 0.361 macro while the HSMM stays at 0.559; EM restarts collapse seed variance (3.9→0.5 std); token stability 0.66–0.93 and faithfulness ≠ 0 on all fan IDs.
 
 **Needs improvement (honest gaps):**
-- **Discretization hurts on fan audio:** primary HSMM (0.559 macro) loses to continuous AE (0.638) and continuous-HSMM A1 (0.697) — the VQ bottleneck discards acoustic detail the task needs. Late-fusion (continuous head + grammar explanation) is the open question.
+- **Discretization hurts on fan audio:** primary HSMM (0.559 macro) loses to continuous AE (0.621) and continuous-HSMM A1 (0.628) — the VQ bottleneck discards acoustic detail the task needs. Late-fusion (continuous head + grammar explanation) is the open question.
 - **id_00 near chance for all arms** (best 0.565) — that machine's fault signature is invisible to every representation tried.
 - **Health index is a weak signal** (Spearman 0.21/0.10) — maintained after the §14 a/b experiment: learned monotone weights (option b) don't beat the fixed prior beyond noise, so this is a representation gap, not a weighting gap.
 - **Native phase-type RUL loses to ridge** (43.5 vs 19.9 DS01) and absorbing calibration hurts DS02 (−4.5 RMSE) — the probabilistic RUL story is unfinished.

@@ -152,7 +152,7 @@ def run_mimii_fan_one(
         tcfg = TrainerConfig(
             window_length=window_length, embed_dim=16, hidden=32,
             n_conv_blocks=2, n_codes=n_codes, d_max=d_max,
-            n_states=n_states, em_max_iter=10, stage1_steps=stage1_steps,
+            n_states=n_states, em_max_iter=10, em_restarts=3, stage1_steps=stage1_steps,
             batch_size=128, seed=seed, log_every=0,
         )
         trainer = Trainer(tcfg, n_channels=Xtr.shape[-1])

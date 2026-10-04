@@ -8,9 +8,9 @@
 
 | Task | Dataset | Best EGPM Result | Baseline Beaten | Margin |
 |------|---------|------------------|-----------------|--------|
-| RUL Prediction | N-CMAPSS DS01 | **19.9 RMSE** | CNN-RUL (34.0), LSTM (38.9) | **14.1 / 19.0 RMSE** |
-| RUL Prediction | N-CMAPSS DS02 | **18.5 RMSE** | CNN-RUL (29.9), LSTM (41.8) | **11.4 / 23.3 RMSE** |
-| Anomaly Detection | MIMII fan | **0.70 AUROC** (continuous-HSMM) | VQ+HSMM (0.56), Markov (0.36) | **+0.14 vs primary** |
+| RUL Prediction | N-CMAPSS DS01 | **18.1 RMSE** (causal) | CNN-RUL (34.0), LSTM (38.9) | **15.9 / 20.8 RMSE** |
+| RUL Prediction | N-CMAPSS DS02 | **22.8 RMSE** (causal) | CNN-RUL (29.9), LSTM (41.8) | **7.1 / 19.0 RMSE** |
+| Anomaly Detection | MIMII fan | **0.63 AUROC** (continuous-HSMM) | VQ+HSMM (0.56), Markov (0.36) | **+0.07 vs primary** |
 | Fault Classification | N-CMAPSS Fc | **0.50 acc** (3-class) | Chance (0.33) | **+17%** |
 | Health Index | N-CMAPSS hs | 0.21/0.10 Spearman | — | Weak signal |
 | Explanation Faithfulness | N-CMAPSS | **0.18-0.72** score reduction | — | Passes masking test |
@@ -25,11 +25,12 @@
 ## Honest Limitations
 
 - **Phase-type RUL fails on DS02** (RMSE=310) — use ridge decoder instead
-- **Discretization loses acoustic info on MIMII** — continuous HSMM (0.70) beats VQ+HSMM (0.56)
+- **Discretization loses acoustic info on MIMII** — continuous HSMM (0.63) beats VQ+HSMM (0.56)
 - **Only 2 test units per N-CMAPSS dataset** — CIs wide, statistical tests underpowered
 - **Health index weak** (Spearman 0.21/0.10) — representation issue, not weighting
 - **Native phase-type RUL fails** (DS02: 310 RMSE) — use ridge decoder
 - **Absorbing calibration hurts** RUL on both datasets
+- **DS02 margins consistently weaker than DS01** under causal filtering — E's edge over baselines is 5-8% on DS02 vs 24% on DS01; dwell vs full is a tie; all causal comparisons show tighter margins on DS02
 
 ## Industrial Relevance for Schneider
 
