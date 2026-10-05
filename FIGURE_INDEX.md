@@ -129,6 +129,6 @@ experiments/figures/
 % RUL readout
 \begin{figure}
   \includegraphics[width=\textwidth]{figures/rul_readout_ablation.png}
-  \caption{On DS02, dwell features alone (19.9) beat full features (23.3) and native phase-type (310). Duration information is sufficient for RUL.}
+  \caption{On DS02 (causal), dwell features (22.9) essentially tie full features (22.8); native phase-type (25.6) underperforms. Duration alone is nearly sufficient but full features edge it.}
 \end{figure}
 ```

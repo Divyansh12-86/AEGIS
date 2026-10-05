@@ -14,159 +14,154 @@
   "n_seeds": 3,
   "results": {
     "continuous_AE": {
-      "AUROC_mean": 0.523,
-      "AUROC_std": 0.002,
+      "AUROC_mean": 0.525901467505241,
+      "AUROC_std": 0.007721295424909843,
       "AUROC_per_seed": [
-        0.522,
-        0.517,
-        0.488
+        0.5342295597484277,
+        0.5156210691823899,
+        0.5278537735849057
       ],
-      "AUPRC_mean": 0.66,
+      "AUPRC_mean": 0.614364785220513,
       "AUPRC_per_seed": [
-        0.661,
-        0.669,
-        0.65
+        0.6214830296550196,
+        0.6001100252056668,
+        0.6215013008008525
       ]
     },
     "pooled_events": {
-      "AUROC_mean": 0.488,
-      "AUROC_std": 0.014,
+      "AUROC_mean": 0.5126965408805032,
+      "AUROC_std": 0.02260993259439425,
       "AUROC_per_seed": [
-        0.506,
-        0.534,
-        0.425
+        0.5394654088050315,
+        0.5144575471698113,
+        0.4841666666666667
       ],
-      "AUPRC_mean": 0.58,
+      "AUPRC_mean": 0.6213213834872503,
       "AUPRC_per_seed": [
-        0.578,
-        0.591,
-        0.571
+        0.6343422132951299,
+        0.6135678605595652,
+        0.6160540766070556
       ]
     },
     "vq_markov": {
-      "AUROC_mean": 0.442,
-      "AUROC_std": 0.069,
+      "AUROC_mean": 0.4656603773584906,
+      "AUROC_std": 0.006558359994848339,
       "AUROC_per_seed": [
-        0.43,
-        0.527,
-        0.369
+        0.4724292452830189,
+        0.46776729559748426,
+        0.45678459119496856
       ],
-      "AUPRC_mean": 0.531,
+      "AUPRC_mean": 0.5640774718508667,
       "AUPRC_per_seed": [
-        0.54,
-        0.527,
-        0.527
+        0.5728365618950523,
+        0.5627628405590315,
+        0.5566330130985163
       ]
     },
     "vq_hsmm": {
-      "AUROC_mean": 0.461,
-      "AUROC_std": 0.08,
+      "AUROC_mean": 0.5206656184486372,
+      "AUROC_std": 0.05164389270476505,
       "AUROC_per_seed": [
-        0.509,
-        0.444,
-        0.43
+        0.5007154088050314,
+        0.46979559748427674,
+        0.5914858490566037
       ],
-      "AUPRC_mean": 0.504,
+      "AUPRC_mean": 0.6055955991814391,
       "AUPRC_per_seed": [
-        0.52,
-        0.484,
-        0.509
+        0.5967479509474363,
+        0.570512882996604,
+        0.6495259636002771
       ]
     },
     "continuous_hsmm": {
-      "AUROC_mean": 0.5733333333333333,
-      "AUROC_std": 0.03618,
+      "AUROC_mean": 0.6004559748427672,
+      "AUROC_std": 0.02351920180601991,
       "AUROC_per_seed": [
-        0.5864583333333333,
-        0.6025416666666666,
-        0.531
+        0.5985534591194969,
+        0.5726493710691823,
+        0.6301650943396226
       ],
-      "AUPRC_mean": 0.617,
+      "AUPRC_mean": 0.6890467902922898,
       "AUPRC_per_seed": [
-        0.601,
-        0.617,
-        0.633
+        0.6936085056202532,
+        0.6722103124551273,
+        0.7013215528014888
       ]
     },
     "grammarviz": {
-      "AUROC_mean": 0.147,
-      "AUROC_std": 0.005,
+      "AUROC_mean": 0.15388888888888888,
+      "AUROC_std": 0.013076224773266473,
       "AUROC_per_seed": [
-        0.142,
-        0.14,
-        0.15
+        0.16833333333333333,
+        0.13666666666666666,
+        0.15666666666666668
       ],
-      "AUPRC_mean": 0.464,
+      "AUPRC_mean": 0.49930742456209204,
       "AUPRC_per_seed": [
-        0.458,
-        0.469,
-        0.469
+        0.4973087227103301,
+        0.5020170776643991,
+        0.4985964733115469
       ]
     },
     "concept_bottleneck": {
-      "AUROC_mean": 0.392,
-      "AUROC_std": 0.03,
+      "AUROC_mean": 0.4323191823899371,
+      "AUROC_std": 0.009016414804575438,
       "AUROC_per_seed": [
-        0.385,
-        0.369,
-        0.424
+        0.43584119496855345,
+        0.44117138364779873,
+        0.41994496855345914
       ],
-      "AUPRC_mean": 0.452,
+      "AUPRC_mean": 0.573179355793869,
       "AUPRC_per_seed": [
-        0.448,
-        0.445,
-        0.463
+        0.5770023195048769,
+        0.5741150833206753,
+        0.5684206645560547
       ]
     }
   },
-  "health_ab_decision": {
-    "note": "...",
-    "per_seed": [
-      {
-        "ab": "a",
-        "val_spearman_fixed": 0.082,
-        "val_spearman_learned": 0.082,
-        "test_spearman_fixed": 0.159,
-        "test_spearman_learned": 0.159,
-        "learned_weights": [
-          0.839,
-          0.71,
-          0.665,
-          0.618,
-          0.573
-        ]
-      },
-      {
-        "ab": "a",
-        "val_spearman_fixed": 0.208,
-        "val_spearman_learned": 0.154,
-        "test_spearman_fixed": -0.101,
-        "test_spearman_learned": -0.113,
-        "learned_weights": [
-          0.924,
-          0.84,
-          0.699,
-          0.634,
-          0.591
-        ]
-      },
-      {
-        "ab": "a",
-        "val_spearman_fixed": 0.252,
-        "val_spearman_learned": 0.105,
-        "test_spearman_fixed": 0.561,
-        "test_spearman_learned": 0.579,
-        "learned_weights": [
-          0.924,
-          0.735,
-          0.695,
-          0.618,
-          0.543
-        ]
-      }
-    ],
-    "majority": "a"
+  "wilcoxon_vs_primary": {
+    "continuous_AE": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.8083651559145103,
+      "min_p": 0.5637028616507731,
+      "n_clips": 512
+    },
+    "pooled_events": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 1.0,
+      "min_p": 0.7054569861112734,
+      "n_clips": 512
+    },
+    "vq_markov": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.28504940740261275,
+      "min_p": 0.04122683333716368,
+      "n_clips": 512
+    },
+    "continuous_hsmm": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.7150006546880892,
+      "min_p": 0.0880815116621903,
+      "n_clips": 512
+    },
+    "grammarviz": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.5637028616507731,
+      "min_p": 0.10829365589900904,
+      "n_clips": 512
+    },
+    "concept_bottleneck": {
+      "note": "paired Wilcoxon over eval clips (correctness vs primary arm), worst-case p across seeds; n clips per seed",
+      "max_p": 0.7815112949987133,
+      "min_p": 0.12663045794761713,
+      "n_clips": 512
+    }
   },
-  "notes": "...",
-  "wall_clock_s": 9662.68
+  "primary_thresholds": {
+    "0": 4.0986789773107875,
+    "1": 3.925859831280166,
+    "2": 3.5171890468783906
+  },
+  "wall_clock_s": 13676.552468061447,
+  "notes": "normal-only training (70/15/15 clip split of normals, train-normal z-stats); eval = held-out normals + all abnormal clips; validation-only thresholds (99th pct); arms share tokenization/preprocessing per seed."
 }

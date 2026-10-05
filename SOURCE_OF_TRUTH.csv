@@ -122,6 +122,105 @@ EM_restarts,Restarts,"1:18.3±3.9 / 3:19.9±2.6 / 5:19.8±2.7 / 10:18.7±0.5",,,
 Window_length,W,"2:24.1 / 4:18.4 / 8:18.4 / 16:19.1",,,"TEST-SET CONTAMINATED"
 
 # ============================================================
+# SECTION 6b: W=16 LOEO SWEEP (CAUSAL, Arm E / F_struct)
+# ============================================================
+# Dataset,Window,Stride,Engine,RMSE_mean,RMSE_per_fold,Mean_RMSE,Median_RMSE,Success_Criterion
+N-CMAPSS_DS01,W=4,S=4,DS01_u3,25.50,,17.30,17.26,
+N-CMAPSS_DS01,W=4,S=4,DS01_u4,17.65,,17.30,17.26,
+N-CMAPSS_DS01,W=4,S=4,DS01_u5,12.59,,17.30,17.26,
+N-CMAPSS_DS01,W=4,S=4,DS01_u6,13.56,,17.30,17.26,
+N-CMAPSS_DS01,W=4,S=4,DS01_u7,17.65,,17.30,17.26,
+N-CMAPSS_DS01,W=4,S=4,DS01_u8,16.87,,17.30,17.26,
+N-CMAPSS_DS01,W=16,S=4,DS01_u3,22.25,,22.17,21.89,
+N-CMAPSS_DS01,W=16,S=4,DS01_u4,25.97,,22.17,21.89,
+N-CMAPSS_DS01,W=16,S=4,DS01_u5,18.63,,22.17,21.89,
+N-CMAPSS_DS01,W=16,S=4,DS01_u6,21.53,,22.17,21.89,
+N-CMAPSS_DS01,W=16,S=4,DS01_u7,21.48,,22.17,21.89,
+N-CMAPSS_DS01,W=16,S=4,DS01_u8,23.16,,22.17,21.89,
+N-CMAPSS_DS02,W=4,S=4,DS02_u10,22.39,,15.74,15.23,
+N-CMAPSS_DS02,W=4,S=4,DS02_u11,15.23,,15.74,15.23,
+N-CMAPSS_DS02,W=4,S=4,DS02_u16,14.44,,15.74,15.23,
+N-CMAPSS_DS02,W=4,S=4,DS02_u18,10.99,,15.74,15.23,
+N-CMAPSS_DS02,W=4,S=4,DS02_u20,15.66,,15.74,15.23,
+N-CMAPSS_DS02,W=16,S=4,DS02_u10,21.97,,14.73,16.12,
+N-CMAPSS_DS02,W=16,S=4,DS02_u11,16.12,,14.73,16.12,
+N-CMAPSS_DS02,W=16,S=4,DS02_u16,7.96,,14.73,16.12,
+N-CMAPSS_DS02,W=16,S=4,DS02_u18,17.02,,14.73,16.12,
+N-CMAPSS_DS02,W=16,S=4,DS02_u20,10.56,,14.73,16.12,
+
+# Window Length Comparison Summary
+# Dataset,W4_Mean,W16_Mean,W4_Median,W16_Median,W16_Wins_Folds,Success
+W_Comparison,DS01,17.30,22.17,17.26,21.89,1/6,FAIL
+W_Comparison,DS02,15.74,14.73,15.23,16.12,N/A,FAIL
+
+# ============================================================
+# SECTION 6c: CONFORMAL RUL INTERVALS (CAUSAL, LOEO Calibrated)
+# ============================================================
+# Dataset,Arm,Nominal_Level,Quantile_Cycles,Test_Engine,Test_RMSE,Test_Coverage_Empirical,Test_Coverage_Nominal,Calibration_Engines,Calibration_Windows,Note
+N-CMAPSS_DS01,Arm_E,50%,17.82,DS01_u2,13.50,0.947,0.50,6,138,Over-covers (small-N)
+N-CMAPSS_DS01,Arm_E,50%,17.82,DS01_u9,17.55,0.800,0.50,6,138,Over-covers (small-N)
+N-CMAPSS_DS01,Arm_E,80%,29.22,DS01_u2,13.50,0.947,0.80,6,138,Over-covers (small-N)
+N-CMAPSS_DS01,Arm_E,80%,29.22,DS01_u9,17.55,0.850,0.80,6,138,Over-covers (small-N)
+N-CMAPSS_DS01,Arm_E,90%,34.98,DS01_u2,13.50,0.947,0.90,6,138,Over-covers (small-N)
+N-CMAPSS_DS01,Arm_E,90%,34.98,DS01_u9,17.55,0.900,0.90,6,138,Near-nominal
+N-CMAPSS_DS02,Arm_E,50%,10.23,DS02_u2,14.89,0.316,0.50,5,85,Under-covers (small-N)
+N-CMAPSS_DS02,Arm_E,50%,10.23,DS02_u5,27.69,0.318,0.50,5,85,Under-covers (small-N)
+N-CMAPSS_DS02,Arm_E,80%,20.56,DS02_u2,14.89,0.895,0.80,5,85,Near-nominal
+N-CMAPSS_DS02,Arm_E,80%,20.56,DS02_u5,27.69,0.364,0.80,5,85,Under-covers (small-N)
+N-CMAPSS_DS02,Arm_E,90%,28.89,DS02_u2,14.89,1.000,0.90,5,85,Over-covers (small-N)
+N-CMAPSS_DS02,Arm_E,90%,28.89,DS02_u5,27.69,0.545,0.90,5,85,Under-covers (small-N)
+
+# Conformal Quantiles Summary
+# Dataset,Arm,Nominal_Level,Quantile_Standard,Quantile_FiniteSample,Cal_Engines,Cal_Windows,Small_N_Warning
+Conformal_Quantiles,DS01,Arm_E,50%,17.82,17.82,6,138,Granularity ~17% (1/6)
+Conformal_Quantiles,DS01,Arm_E,80%,28.46,29.22,6,138,Granularity ~17% (1/6)
+Conformal_Quantiles,DS01,Arm_E,90%,33.91,34.98,6,138,Granularity ~17% (1/6)
+Conformal_Quantiles,DS02,Arm_E,50%,10.23,10.23,5,85,Granularity ~20% (1/5)
+Conformal_Quantiles,DS02,Arm_E,80%,20.56,20.56,5,85,Granularity ~20% (1/5)
+Conformal_Quantiles,DS02,Arm_E,90%,28.54,28.89,5,85,Granularity ~20% (1/5)
+
+# LOEO Coverage (Retrospective)
+# Dataset,Arm,Nominal_Level,Engine,LOEO_Coverage,Engine_Windows
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u3,0.280,25
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u4,0.750,24
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u5,0.955,22
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u6,0.783,23
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u7,0.909,22
+LOEO_Coverage,DS01,Arm_E,50%,DS01_u8,0.864,22
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u3,0.680,25
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u4,0.917,24
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u5,0.864,22
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u6,0.696,23
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u7,0.864,22
+LOEO_Coverage,DS01,Arm_E,80%,DS01_u8,0.864,22
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u3,0.800,25
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u4,0.917,24
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u5,1.000,22
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u6,0.783,23
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u7,1.000,22
+LOEO_Coverage,DS01,Arm_E,90%,DS01_u8,1.000,22
+LOEO_Coverage,DS02,Arm_E,50%,DS02_u10,0.250,20
+LOEO_Coverage,DS02,Arm_E,50%,DS02_u11,0.400,15
+LOEO_Coverage,DS02,Arm_E,50%,DS02_u16,0.125,16
+LOEO_Coverage,DS02,Arm_E,50%,DS02_u18,0.389,18
+LOEO_Coverage,DS02,Arm_E,50%,DS02_u20,0.125,16
+LOEO_Coverage,DS02,Arm_E,80%,DS02_u10,0.650,20
+LOEO_Coverage,DS02,Arm_E,80%,DS02_u11,0.733,15
+LOEO_Coverage,DS02,Arm_E,80%,DS02_u16,0.625,16
+LOEO_Coverage,DS02,Arm_E,80%,DS02_u18,0.667,18
+LOEO_Coverage,DS02,Arm_E,80%,DS02_u20,0.813,16
+LOEO_Coverage,DS02,Arm_E,90%,DS02_u10,0.850,20
+LOEO_Coverage,DS02,Arm_E,90%,DS02_u11,0.867,15
+LOEO_Coverage,DS02,Arm_E,90%,DS02_u16,0.938,16
+LOEO_Coverage,DS02,Arm_E,90%,DS02_u18,0.889,18
+LOEO_Coverage,DS02,Arm_E,90%,DS02_u20,0.875,16
+
+# Small-N Limitation Analysis
+# Dataset,Cal_Engines,Cal_Windows,Granularity_Step,Warning
+Small_N_Analysis,DS01,6,138,16.7%,Only 6 calibration engines - quantile granularity coarse (1/6 steps). Nominal coverage not precisely achievable.
+Small_N_Analysis,DS02,5,85,20.0%,Only 5 calibration engines - quantile granularity coarse (1/5 steps). Nominal coverage not precisely achievable.
+
+# ============================================================
 # SECTION 7: SCIENTIFIC AUDIT - PHASE 2 REPRODUCIBILITY
 # ============================================================
 # Phase,Seed_Set,RMSE_mean,RMSE_std,RMSE_per_seed,MAE_mean,MAE_std,MAE_per_seed

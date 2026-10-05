@@ -21,7 +21,7 @@
 
 ---
 
-## B. TOP 5 VERIFIED RESULTS
+## B. TOP 6 VERIFIED RESULTS
 
 | # | Result | Dataset | Metric | Evidence |
 |---|--------|---------|--------|----------|
@@ -30,6 +30,7 @@
 | 3 | **Continuous representations beat discrete on MIMII anomaly** | MIMII | A1 (0.628) > primary (0.559) > Markov (0.361) | 7-arm comparison, 4 IDs × 3 seeds, Wilcoxon powered |
 | 4 | **E2 native phase-type RUL worse than ridge on both datasets** | N-CMAPSS | E2 23.4/25.6 vs E 18.1/22.8 | Ablation E vs E2 — **causal filtering** |
 | 5 | **Explanation faithfulness holds** | N-CMAPSS | Masking top-3 windows → score reduction 0.18-0.72 | Faithfulness masking test (positive reduction) |
+| 6 | **Conformal RUL intervals via engine-level LOEO** | N-CMAPSS | DS01: 90% nominal → 92% empirical (over-covers, small-N)<br>DS02: 90% nominal → 55-100% empirical (unreliable, small-N) | Engine-level LOEO conformal calibration (6/5 engines), causal filtering; DS02 intervals currently unreliable — see Limitations #7 |
 
 ---
 
@@ -43,6 +44,7 @@
 | 4 | **Health index weak** (Spearman 0.21/0.10) | Not clinically actionable | Representation issue, not weighting (learned weights don't help) |
 | 5 | **MIMII continuous beats discrete** | VQ bottleneck loses acoustic detail | Late-fusion architecture for anomaly tasks |
 | 6 | **DS02 margins consistently weaker than DS01** under causal filtering | E's edge over baselines 5-8% on DS02 vs 24% on DS01; dwell vs full tie; all causal comparisons tighter on DS02 | Acknowledge dataset-dependent reliability |
+| 7 | **DS02 conformal RUL intervals unreliable** — 5 calibration engines yields coarse quantile granularity (~20% steps), causing 55-100% empirical coverage at 90% nominal (u5: 55%, u2: 100%) | Cannot trust DS02 conformal intervals for decision-making | Pool DS01+DS02 calibration (11 engines) to improve granularity; re-validate before deployment |
 
 ---
 
@@ -157,7 +159,7 @@
 
 ## EXACT CLAIMS WE CAN SAFELY MAKE
 
-1. ✅ EGPM's VQ+HSMM+ridge achieves 18.1/22.8 RMSE on N-CMAPSS DS01/DS02 (causal), beating all simpler arms and CNN/LSTM baselines by 6-16 RMSE.
+1. ✅ EGPM's VQ+HSMM+ridge achieves 18.1/22.8 RMSE on N-CMAPSS DS01/DS02 (causal), beating all simpler arms and CNN/LSTM baselines by 6-16 RMSE (CNN/LSTM baselines smoothed; margin large enough that conclusion robust).
 2. ✅ Explicit duration modeling provides 24% RMSE reduction (DS01) and 8% (DS02) over geometric-dwell HMM (causal).
 3. ✅ On MIMII fan anomaly detection, continuous-HSMM (0.63 AUROC) outperforms VQ+HSMM (0.56), revealing discretization loses acoustic information.
 4. ✅ Faithfulness masking confirms top-scoring windows genuinely drive anomaly scores (reduction 0.2-0.7).

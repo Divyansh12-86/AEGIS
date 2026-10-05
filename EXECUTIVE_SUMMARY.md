@@ -14,6 +14,7 @@
 | Fault Classification | N-CMAPSS Fc | **0.50 acc** (3-class) | Chance (0.33) | **+17%** |
 | Health Index | N-CMAPSS hs | 0.21/0.10 Spearman | — | Weak signal |
 | Explanation Faithfulness | N-CMAPSS | **0.18-0.72** score reduction | — | Passes masking test |
+| RUL Uncertainty (Conformal) | N-CMAPSS | **90% interval** (causal LOEO) | — | DS01: 92% empirical (conservative)<br>DS02: 55-100% empirical (unreliable, small-N) |
 
 ## Technical Innovation
 
@@ -31,6 +32,7 @@
 - **Native phase-type RUL fails** (DS02: 310 RMSE) — use ridge decoder
 - **Absorbing calibration hurts** RUL on both datasets
 - **DS02 margins consistently weaker than DS01** under causal filtering — E's edge over baselines is 5-8% on DS02 vs 24% on DS01; dwell vs full is a tie; all causal comparisons show tighter margins on DS02
+- **DS02 conformal RUL intervals unreliable** — 5 calibration engines yields coarse quantile granularity (~20% steps), causing 55-100% empirical coverage at 90% nominal; DS02 intervals not currently reliable for decision-making
 
 ## Industrial Relevance for Schneider
 
