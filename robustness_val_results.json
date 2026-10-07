@@ -1,0 +1,314 @@
+{
+  "VQ_codebook_size": {
+    "DS01": {
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "HSMM_states": {
+    "DS01": {
+      "2": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "3": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "6": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "2": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "3": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "6": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "HSMM_d_max": {
+    "DS01": {
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "10": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "12": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "15": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "10": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "12": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "15": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "Stride": {
+    "DS01": {
+      "1": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "2": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "1": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "2": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "4": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "8": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "Encoder_width": {
+    "DS01": {
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "64": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "128": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "16": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "32": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "64": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "128": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "Encoder_attention": {
+    "DS01": {
+      "False": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "True": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "False": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "True": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "VQ_commitment_beta": {
+    "DS01": {
+      "0.1": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.25": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.5": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "1.0": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "0.1": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.25": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.5": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "1.0": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "EMA_decay": {
+    "DS01": {
+      "0.9": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.99": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.999": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "0.9": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.99": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "0.999": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "Stage1_steps": {
+    "DS01": {
+      "100": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "200": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "300": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "500": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "100": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "200": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "300": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "500": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "EM_iterations": {
+    "DS01": {
+      "5": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "10": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "20": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "50": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "5": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "10": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "20": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "50": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  },
+  "RUL_cap": {
+    "DS01": {
+      "50": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "100": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "200": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "None": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    },
+    "DS02": {
+      "50": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "100": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "200": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      },
+      "None": {
+        "error": "boolean index did not match indexed array along axis 0; size of axis is 8 but size of corresponding boolean axis is 4"
+      }
+    }
+  }
+}
