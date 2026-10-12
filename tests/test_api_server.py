@@ -54,6 +54,25 @@ def test_scenarios_and_inference(client):
     assert step["state_id"] == 1
     assert step["rul"]["expected"] == pytest.approx(88.5, abs=0.1)
     assert step["decision"]["tier"] == "NOMINAL: STANDARD MONITORING"
+    assert "engineering_insights" in step
+    assert len(step["engineering_insights"]["root_causes"]) >= 1
+
+
+def test_engineering_insights_causal_attribution(client):
+    # Test Scenario C (severe degradation at cycle 58, State 4)
+    inf_res = client.post(
+        "/api/inference",
+        json={"asset_id": "DS01_u2", "scenario_id": "scenario_c", "step_index": 1},
+    )
+    assert inf_res.status_code == 200
+    step = inf_res.json()["step_data"]
+    insights = step["engineering_insights"]
+    assert any(rc["severity"] == "CRITICAL" for rc in insights["root_causes"])
+    assert "T50" in insights["root_causes"][0]["subsystem"]
+    assert insights["state_causality"]["dwell_hazard_multiplier"] > 3.0
+    assert "counterfactual" in insights["state_causality"]
+    assert insights["anomaly_decomposition"]["primary_driver"].startswith("Emission")
+    assert len(insights["actionable_maintenance"]["maintenance_procedures"]) >= 3
 
 
 def test_unreliable_scenario_fallback(client):

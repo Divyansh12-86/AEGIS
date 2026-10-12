@@ -6,6 +6,7 @@ import { SensorInspector } from "@/components/telemetry/SensorInspector";
 import { EGPMPipeline } from "@/components/pipeline/EGPMPipeline";
 import { TemporalExplorer } from "@/components/temporal/TemporalExplorer";
 import { MaintenanceDecision } from "@/components/predictions/MaintenanceDecision";
+import { EngineeringInsightsPanel } from "@/components/predictions/EngineeringInsightsPanel";
 import { SimulationControls } from "@/components/simulation/SimulationControls";
 import { EvaluationModal } from "@/components/evaluation/EvaluationModal";
 import { NCMAPSS_SENSORS, SCENARIOS } from "@/lib/scenarios";
@@ -212,6 +213,15 @@ export default function EGPMIndustrialSimulation() {
               onOpenEvaluation={() => setShowEvalModal(true)}
             />
           </div>
+        </div>
+
+        {/* Row 4: Actionable Engineering Insights & Root-Cause Attribution */}
+        <div>
+          <EngineeringInsightsPanel
+            insights={stepData?.engineering_insights}
+            cycle={stepData?.cycle ?? 10}
+            isUnreliable={stepData?.is_unreliable}
+          />
         </div>
       </main>
 
