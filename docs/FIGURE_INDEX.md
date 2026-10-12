@@ -3,26 +3,34 @@
 ## Generated Figures
 
 ### Degradation Trajectories (`experiments/figures/degradation_trajectories/`)
-| File | Description | Use Case |
-|------|-------------|----------|
-| `DS01_DS01_u2_trajectory.png` | Test unit DS01_u2 full trajectory | Main paper: degradation progression example |
-| `DS01_DS01_u9_trajectory.png` | Test unit DS01_u9 full trajectory | Failure analysis: codebook failure case |
-| `DS01_DS01_u3_trajectory_train.png` | Train unit DS01_u3 | Successful example |
-| `DS01_DS01_u4_trajectory_train.png` | Train unit DS01_u4 | Successful example |
-| `DS02_DS02_u2_trajectory.png` | Test unit DS02_u2 | Failure analysis: late degradation |
-| `DS02_DS02_u5_trajectory.png` | Test unit DS02_u5 | Failure analysis: late degradation |
-| `DS02_DS02_u10_trajectory_train.png` | Train unit DS02_u10 | Successful example |
-| `DS02_DS02_u11_trajectory_train.png` | Train unit DS02_u11 | Successful example |
+| File | Clean Name | Description | Use Case |
+|------|------------|-------------|----------|
+| `DS01_u2_trajectory.png` | `DS01_u2_trajectory.png` (alias: `DS01_DS01_u2_trajectory.png`) | Test unit DS01_u2 full trajectory | Main paper / Hero README: degradation progression |
+| `DS01_u9_trajectory.png` | `DS01_u9_trajectory.png` (alias: `DS01_DS01_u9_trajectory.png`) | Test unit DS01_u9 full trajectory | Failure analysis: codebook failure case |
+| `DS01_u3_trajectory_train.png` | `DS01_u3_trajectory_train.png` | Train unit DS01_u3 | Successful example |
+| `DS01_u4_trajectory_train.png` | `DS01_u4_trajectory_train.png` | Train unit DS01_u4 | Successful example |
+| `DS02_u2_trajectory.png` | `DS02_u2_trajectory.png` (alias: `DS02_DS02_u2_trajectory.png`) | Test unit DS02_u2 | Failure analysis: late degradation |
+| `DS02_u5_trajectory.png` | `DS02_u5_trajectory.png` (alias: `DS02_DS02_u5_trajectory.png`) | Test unit DS02_u5 | Failure analysis: late degradation |
+| `DS02_u10_trajectory_train.png` | `DS02_u10_trajectory_train.png` | Train unit DS02_u10 | Successful example |
+| `DS02_u11_trajectory_train.png` | `DS02_u11_trajectory_train.png` | Train unit DS02_u11 | Successful example |
 
-Each trajectory plot contains 8 panels:
-1. Sensor trajectories (first 6 channels)
-2. VQ event IDs over time
-3. HSMM state posterior heatmap
-4. Viterbi path vs true health state
-5. State age (elapsed dwell)
-6. Predicted RUL vs true RUL
-7. Health state transitions (true vs inferred)
-8. Event transitions
+Each trajectory plot contains 8 synchronized panels formatted with publication-quality typography and proportions:
+1. Sensor trajectories (first 6 normalized channels, mean per window)
+2. VQ discrete operational event sequence ($v_t \in \mathcal{V}$)
+3. HSMM state posterior belief heatmap ($p_t(m)$) with aligned colorbar
+4. Viterbi inferred state sequence vs Ground Truth health state (step plots)
+5. State age (elapsed dwell $\tau_t$ in active state with shaded fill)
+6. Predicted RUL vs True RUL with shaded error band and trajectory RMSE annotation
+7. Health state regime transitions (true onsets vs inferred boundaries)
+8. VQ operational event change points
+
+### Presentation & Publication Figures (`experiments/figures/`)
+| File | Script | Description |
+|------|--------|-------------|
+| `ablation_chart.png` | `experiments/generate_paper_figures.py` | Grouped bar chart: Arms A–F vs deep baselines (DS01 & DS02) |
+| `mimii_auroc_ranking.png` | `experiments/generate_paper_figures.py` | Horizontal ranking bar chart: 7 arms across 4 MIMII fan IDs |
+| `rul_readout_ablation.png` | `experiments/generate_paper_figures.py` | Feature set ablation: causal Ridge vs native phase-type |
+| `faithfulness_masking.png` | `experiments/generate_paper_figures.py` | Explanation faithfulness: anomaly score drops upon feature masking |
 
 ### Event Dictionary (JSON)
 | File | Description |

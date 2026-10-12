@@ -58,8 +58,8 @@ Because window length was truncated by 8×, data was downsampled, and CPM maskin
 
 CruiseBench reproduction was not completed due to environment memory limits (native 1Hz W=256 OOM). The exploratory W=32 run documented here was an internal check under downsampled conditions, not CruiseBench-compatible, and is not claimed as benchmark reproduction.
 
-**Reference Scripts**:
-- `run_track_a_small.py` — exploratory run (W=32, S=4)
-- `run_track_a_proper.py` — full protocol attempt (OOM)
-- `run_track_a_chunked.py` — chunked attempt (OOM)
-- `run_track_a_compromise.py` — W=128 attempt (sequence too short)
+**Reference Scripts** (located in `scripts/exploratory/`):
+- `scripts/exploratory/run_track_a_small.py` — exploratory run (W=32, S=4)
+- `scripts/exploratory/run_track_a_proper.py` — full protocol attempt (OOM)
+- `scripts/exploratory/run_track_a_chunked.py` — chunked attempt (OOM)
+- `scripts/exploratory/run_track_a_compromise.py` — W=128 attempt (sequence too short)

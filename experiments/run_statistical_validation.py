@@ -2,19 +2,24 @@
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
+
+# Ensure aegis-1 root is on python path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import numpy as np
 from scipy.stats import wilcoxon, bootstrap
 from scipy.special import comb
+from results import load_result
 
 # Load all existing results
 def load_results():
     results = {}
     for ds in ("DS01", "DS02"):
-        with open(f"ablation_report_{ds}.json") as f:
-            results[ds] = json.load(f)
+        results[ds] = load_result(f"ablation_report_{ds}.json")
     for id_ in ("id_00", "id_02", "id_04", "id_06"):
-        with open(f"mimii_fan_{id_}_3seeds.json") as f:
-            results[f"MIMII_{id_}"] = json.load(f)
+        results[f"MIMII_{id_}"] = load_result(f"mimii_fan_{id_}_3seeds.json")
     return results
 
 
@@ -37,7 +42,7 @@ def bootstrap_ci_95(data, n_bootstrap=10000):
 def validate_ncmapss_claims():
     print("=== N-CMAPSS Statistical Validation ===")
     for ds in ("DS01", "DS02"):
-        r = json.load(open(f"ablation_report_{ds}.json"))
+        r = load_result(f"ablation_report_{ds}.json")
         print(f"\n--- {ds} ---")
 
         # Claim 1: E (VQ+HSMM+ridge) beats all simpler arms
@@ -95,8 +100,7 @@ def validate_mimii_claims():
     for arm in arms:
         aucs = []
         for id_ in ("id_00", "id_02", "id_04", "id_06"):
-            with open(f"mimii_fan_{id_}_3seeds.json") as f:
-                r = json.load(f)
+            r = load_result(f"mimii_fan_{id_}_3seeds.json")
             aucs.append(r["results"][arm]["AUROC_mean"])
         macro[arm] = {"mean": np.mean(aucs), "std": np.std(aucs), "per_id": aucs}
 
@@ -126,8 +130,7 @@ def validate_mimii_claims():
 def validate_heads_claims():
     print("\n=== Heads Claims Validation ===")
     for ds in ("DS01", "DS02"):
-        with open(f"heads_report_{ds}.json") as f:
-            r = json.load(f)
+        r = load_result(f"heads_report_{ds}.json")
 
         # Fault accuracy
         fa = r["results"]["fault_accuracy"]

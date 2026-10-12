@@ -1,6 +1,8 @@
+from pathlib import Path
 import json
 
-with open('/Users/atharvamendhulkar/desktop/aegis-1/conformal_rul_results.json', 'r') as f:
+path = Path('results/conformal/conformal_rul_results.json') if Path('results/conformal/conformal_rul_results.json').exists() else Path('conformal_rul_results.json')
+with open(path, 'r') as f:
     res = json.load(f)
 
 # The issue: test_set_evaluation engines dict is empty for 50% and 80%

@@ -34,7 +34,7 @@
 ## Overview
 
 <p align="center">
-  <img src="experiments/figures/degradation_trajectories/DS01_DS01_u2_trajectory.png" alt="AEGIS EGPM Degradation Trajectory Dashboard" width="900" />
+  <img src="experiments/figures/degradation_trajectories/DS01_u2_trajectory.png" alt="AEGIS EGPM Degradation Trajectory Dashboard" width="900" />
 </p>
 
 **AEGIS (EGPM — Event Grammar Probabilistic Model)** is a production-grade neuro-symbolic predictive maintenance architecture engineered for mission-critical industrial asset management. 
@@ -228,18 +228,40 @@ aegis-1/
 │   ├── EXPLORATORY_W32.md            # W=32 exploratory run analysis (memory bounds)
 │   ├── SOURCE_OF_TRUTH.csv           # Canonical source of truth metric registry
 │   ├── LIMITATIONS.md                # Exhaustive engineering limitations registry
-│   └── PRD.md                        # Product requirements & mathematical specifications
-├── experiments/                      # Experiment Protocols & Visualization Figures
-│   ├── figures/                      # Degradation trajectories & visualization plots
+│   ├── FIGURE_INDEX.md               # Index of all generated figures and visual artifacts
+│   ├── PRD.md                        # Product requirements & mathematical specifications
+│   └── archive/                      # Historical operator sessions & exploratory logs
+├── experiments/                      # Experiment Protocols & Visualization Suite
+│   ├── figures/                      # High-resolution publication figures & trajectories
+│   │   ├── degradation_trajectories/ # Per-unit degradation dashboards (DS01 & DS02)
+│   │   ├── ablation_chart.png        # Grouped bar chart (Arms A-F vs baselines)
+│   │   ├── mimii_auroc_ranking.png   # Macro AUROC ranking across 7 acoustic arms
+│   │   ├── rul_readout_ablation.png  # Feature set readout comparison
+│   │   └── faithfulness_masking.png  # Explanation faithfulness score reduction
+│   ├── generate_paper_figures.py     # Script to generate paper/presentation figures
+│   ├── run_degradation_trajectories.py # Script generating per-unit trajectory dashboards
 │   ├── PROTOCOL.md                   # Locked Evaluation Protocol v1.0
 │   ├── EXECUTION_PLAN.md             # Experimental execution plan & milestones
 │   └── AUDIT.md                      # Pre-submission verification checklist
+├── results/                          # Categorized Frozen Benchmark Results Registry
+│   ├── ncmapss/                      # N-CMAPSS ablation reports, heads & readout studies (12 files)
+│   ├── mimii/                        # MIMII 3-seed evaluation & interpretability reports (8 files)
+│   ├── conformal/                    # Conformal intervals, LOEO & robustness sweeps (5 files)
+│   ├── ablations/                    # Causal ablations, TCN studies & scientific audits (17 files)
+│   ├── loader.py                     # Unified results loading helper (results.load_result)
+│   └── README.md                     # Registry index and usage instructions
 ├── scripts/                          # Operational CLI Runners & Experiment Drivers
 │   ├── run_conformal_rul.py          # Engine-level LOEO conformal RUL calibrator
 │   ├── run_counterfactual_v2.py      # Counterfactual consistency evaluator
 │   ├── run_causal_full_ablation.py   # Full causal ablation pipeline (Arms A-F)
 │   ├── run_loeo_and_seed_stability.py# 6-fold LOEO & 10-seed stability benchmark
+│   ├── run_causal_arm_e.py           # Causal Arm E verification runner
+│   ├── run_causal_dwell_vs_full.py   # Dwell-only vs full feature comparison
+│   ├── mimii_driver.py               # MIMII driver script
+│   ├── run_mimii.sh                  # MIMII execution shell script
+│   ├── exploratory/                  # Exploratory Track A / W=32 & scratch variants (15 scripts)
 │   └── verification/                 # One-off verification & diagnostics suite (14 tools)
+├── logs/                             # Archived execution and training logs
 ├── tests/                            # Comprehensive Automated Test Suite (260 Tests)
 │   ├── test_ablations.py             # Deliverable E / A-F ablation verification (12 tests)
 │   ├── test_analytic_validation.py   # Synthetic closed-form mathematical checks (9 tests)
