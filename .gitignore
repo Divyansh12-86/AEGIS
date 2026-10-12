@@ -74,5 +74,13 @@ Thumbs.db
 # --- Type checking / linting caches ---
 .mypy_cache/
 .ruff_cache/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+web/node_modules/
+web/.next/
+web/out/
+
 # --- Documentation ---
 # docs/ tracked
