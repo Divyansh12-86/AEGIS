@@ -10,6 +10,10 @@ interface EGPMPipelineProps {
   onOpenEvaluation: () => void;
 }
 
+const HEATMAP_OPACITIES = [0.2, 0.4, 0.7, 0.3, 0.5, 0.8, 0.3, 0.6, 0.2, 0.5, 0.9, 0.4, 0.6, 0.3, 0.7, 0.5];
+const LATENT_BAR_HEIGHTS = [28, 14, 22, 30, 16, 26, 12, 24];
+const LATENT_BAR_OPACITIES = [0.4, 0.7, 1.0, 0.4, 0.7, 1.0, 0.4, 0.7];
+
 export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
   stepData,
   isProcessing,
@@ -60,7 +64,7 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
             className={`h-full bg-[#3563FF] transition-all duration-500 ${
               isProcessing ? "opacity-100" : "opacity-40"
             }`}
-            style={{ width: `${(activeStageIndex / 4) * 100}%` }}
+            style={{ width: `${activeStageIndex * 25}%` }}
           />
         </div>
 
@@ -90,7 +94,7 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
                   key={i}
                   className="rounded-[1px] transition-colors"
                   style={{
-                    backgroundColor: `rgba(53, 99, 255, ${0.15 + ((i * 17) % 70) / 100})`,
+                    backgroundColor: `rgba(53, 99, 255, ${HEATMAP_OPACITIES[i]})`,
                   }}
                 />
               ))}
@@ -131,8 +135,8 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
                   key={i}
                   className="w-2 bg-[#3563FF] rounded-xs transition-all"
                   style={{
-                    height: `${Math.max(6, 32 * Math.abs(Math.sin((i + 1) * 1.5)))}px`,
-                    opacity: 0.4 + (i % 3) * 0.3,
+                    height: `${LATENT_BAR_HEIGHTS[i]}px`,
+                    opacity: LATENT_BAR_OPACITIES[i],
                   }}
                 />
               ))}
@@ -208,7 +212,7 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
                     className={`w-full rounded-t-xs transition-all ${
                       i + 1 === stateId ? "bg-[#3563FF]" : "bg-[#D1D5DB]"
                     }`}
-                    style={{ height: `${Math.max(4, p * 32)}px` }}
+                    style={{ height: `${Math.round(Math.max(4, p * 32))}px` }}
                   />
                   <span className="text-[8px] font-mono text-[#6B7280] mt-0.5">S{i + 1}</span>
                 </div>

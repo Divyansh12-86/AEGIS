@@ -41,8 +41,8 @@ export const SensorInspector: React.FC<SensorInspectorProps> = ({
 
   const sparkPolyline = sparkPoints
     .map((v, i) => {
-      const x = (i / Math.max(sparkPoints.length - 1, 1)) * 260 + 10;
-      const y = 50 - ((v - sparkMin) / sparkRange) * 40;
+      const x = Math.round((i / Math.max(sparkPoints.length - 1, 1)) * 260 + 10);
+      const y = Math.round(50 - ((v - sparkMin) / sparkRange) * 40);
       return `${x},${y}`;
     })
     .join(" ");
@@ -132,7 +132,7 @@ export const SensorInspector: React.FC<SensorInspectorProps> = ({
             {historyVals.length > 0 && (
               <circle
                 cx={270}
-                cy={50 - (((historyVals[historyVals.length - 1] || minNom) - sparkMin) / sparkRange) * 40}
+                cy={Math.round(50 - (((historyVals[historyVals.length - 1] || minNom) - sparkMin) / sparkRange) * 40)}
                 r="3.5"
                 fill="#3563FF"
                 stroke="#FFFFFF"
