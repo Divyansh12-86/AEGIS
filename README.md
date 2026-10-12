@@ -17,6 +17,10 @@
     <br />
     <a href="docs/EXECUTIVE_SUMMARY.md"><strong>Executive Summary</strong></a>
     &middot;
+    <a href="docs/SCHNEIDER_ALIGNMENT_ROI.md"><strong>Schneider ROI Model</strong></a>
+    &middot;
+    <a href="docs/PRESENTATION_DECK_SPEC.md"><strong>Pitch Deck Spec</strong></a>
+    &middot;
     <a href="docs/FINAL_RESULTS.md"><strong>Final Results Package</strong></a>
     &middot;
     <a href="docs/NOVELTY_CASE.md"><strong>Novelty Case & Non-Claims</strong></a>
@@ -228,6 +232,8 @@ aegis-1/
 │   ├── EXPLORATORY_W32.md            # W=32 exploratory run analysis (memory bounds)
 │   ├── SOURCE_OF_TRUTH.csv           # Canonical source of truth metric registry
 │   ├── LIMITATIONS.md                # Exhaustive engineering limitations registry
+│   ├── SCHNEIDER_ALIGNMENT_ROI.md    # Schneider Electric business impact & quantified ROI model
+│   ├── PRESENTATION_DECK_SPEC.md     # 10-slide PredictX pitch deck specification & scripts
 │   ├── FIGURE_INDEX.md               # Index of all generated figures and visual artifacts
 │   ├── PRD.md                        # Product requirements & mathematical specifications
 │   └── archive/                      # Historical operator sessions & exploratory logs
@@ -251,6 +257,7 @@ aegis-1/
 │   ├── loader.py                     # Unified results loading helper (results.load_result)
 │   └── README.md                     # Registry index and usage instructions
 ├── scripts/                          # Operational CLI Runners & Experiment Drivers
+│   ├── demo_predictx.py              # Interactive real-time CLI prototype demonstration
 │   ├── run_conformal_rul.py          # Engine-level LOEO conformal RUL calibrator
 │   ├── run_counterfactual_v2.py      # Counterfactual consistency evaluator
 │   ├── run_causal_full_ablation.py   # Full causal ablation pipeline (Arms A-F)
@@ -380,6 +387,7 @@ Place the raw benchmark datasets into their corresponding directories:
 
 | Command | Description |
 | :--- | :--- |
+| `python3 scripts/demo_predictx.py` | Run real-time interactive Schneider PredictX CLI prototype demonstration |
 | `pytest` | Execute complete automated test suite (260 tests, 100% pass rate) |
 | `python scripts/run_conformal_rul.py` | Run engine-level LOEO conformal RUL calibration (DS01 & DS02) |
 | `python scripts/run_counterfactual_v2.py` | Run counterfactual consistency evaluation (CF1 dwell reset & CF2 state shift) |
