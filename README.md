@@ -435,6 +435,10 @@ Contributions and research extensions are welcome! Please follow these standards
 3. Adhere to strict causality constraints: no future-time temporal leakage in preprocessing, encoders, or grammar decoders.
 4. Open a Pull Request referencing the relevant experimental protocol or hypothesis.
 
+## Authors & Team
+
+Developed by **Atharva Mendhulkar** and **Divyansh Seth** for Schneider Electric PredictX 2026.
+
 ---
 
 ## License
