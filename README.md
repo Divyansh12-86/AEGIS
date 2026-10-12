@@ -23,6 +23,8 @@
     &middot;
     <a href="docs/PITCH_DIVISION_CS_EEE.md"><strong>Pitch Division (CS/EEE)</strong></a>
     &middot;
+    <a href="docs/ARCHITECTURAL_DOMAIN_DIVISION.md"><strong>Architecture Domain Division</strong></a>
+    &middot;
     <a href="docs/FINAL_RESULTS.md"><strong>Final Results Package</strong></a>
     &middot;
     <a href="docs/NOVELTY_CASE.md"><strong>Novelty Case & Non-Claims</strong></a>
@@ -237,6 +239,7 @@ aegis-1/
 │   ├── SCHNEIDER_ALIGNMENT_ROI.md    # Schneider Electric business impact & quantified ROI model
 │   ├── PRESENTATION_DECK_SPEC.md     # 10-slide PredictX pitch deck specification & scripts
 │   ├── PITCH_DIVISION_CS_EEE.md      # CS vs EEE tag-team pitch guide & Q&A defense matrix
+│   ├── ARCHITECTURAL_DOMAIN_DIVISION.md # Component-level architectural ownership breakdown
 │   ├── FIGURE_INDEX.md               # Index of all generated figures and visual artifacts
 │   ├── PRD.md                        # Product requirements & mathematical specifications
 │   └── archive/                      # Historical operator sessions & exploratory logs
