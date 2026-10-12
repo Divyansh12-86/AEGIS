@@ -2,12 +2,14 @@
 """Build the complete Schneider Electric PredictX pitch deck (.pptx).
 
 Takes the official template 'PredictX Team Pitch Deck Template V2.pptx',
-populates all 7 template slides with AEGIS content and figures, and appends
+populates all slides with AEGIS technical rigor, embeds high-res figures,
+adds a dedicated 'Honest Engineering & Limitations' slide (Priority 3), and appends
 the two mandatory kickoff slides (Tagline Slide 13 & Closing Slide 14 from Kickoff PDF).
 
 Outputs:
-    PredictX_AEGIS_Final_Pitch_Deck.pptx
+    PredictX_AEGIS_Final_Pitch_Deck.pptx (10 Slides)
 """
+import copy
 import sys
 from pathlib import Path
 import pptx
@@ -23,7 +25,7 @@ IMG_SLIDE14 = ROOT / "assets/schneider_slide14_closing.png"
 
 
 def set_text(shape, text, font_size=None, bold=None, color=None):
-    """Safely replace text in shape preserving first paragraph format where possible."""
+    """Safely replace text in shape preserving formatting where possible."""
     if not shape.has_text_frame:
         return
     tf = shape.text_frame
@@ -46,7 +48,6 @@ def main():
     # SLIDE 1: Cover Slide
     # =========================================================================
     s1 = prs.slides[0]
-    # Remove unselected theme shapes and extra pills
     for sp in list(s1.shapes):
         if sp.shape_id in [9, 10, 13, 14, 15, 16, 25, 28, 29]:
             sp._element.getparent().remove(sp._element)
@@ -94,7 +95,7 @@ def main():
                     "AEGIS unifies all predictive maintenance into a single inspectable state representation. "
                     "Multivariate telemetry is mapped via 1D causal convolutions and Vector Quantization (K=16) "
                     "into learned discrete events. An explicit-duration HSMM (M=5, D_max=10) models non-exponential "
-                    "dwell physics. Four bottlenecked heads output RUL with 90% Conformal Prediction intervals, "
+                    "dwell physics. Four bottlenecked heads deliver Remaining Useful Life with 90% Conformal Prediction intervals, "
                     "acoustic anomaly detection, fault recognition, and health scoring with zero-hallucination "
                     "explanations and counterfactual what-if simulations."
                 )
@@ -144,16 +145,13 @@ def main():
     # SLIDE 4: Prototype & Demo (20%)
     # =========================================================================
     s4 = prs.slides[3]
-    # Remove placeholder text in the left image box
     for shape in list(s4.shapes):
         if shape.has_text_frame and "[ Replace this box with a screenshot" in shape.text_frame.text:
             shape.text_frame.clear()
         if shape.shape_type == pptx.enum.shapes.MSO_SHAPE_TYPE.PICTURE and shape.left < Inches(6):
-            # Remove placeholder icon
             sp = shape._element
             sp.getparent().remove(sp)
 
-    # Insert high-resolution degradation trajectory figure
     if FIG_TRAJECTORY.exists():
         print(f"Embedding prototype trajectory figure: {FIG_TRAJECTORY.name}")
         s4.shapes.add_picture(
@@ -191,33 +189,80 @@ def main():
                 set_text(shape, next_text, font_size=10)
 
     # =========================================================================
-    # SLIDE 5: Meet the Team
+    # SLIDE 5 (NEW): Scientific Rigor & Honest Engineering (Priority 3)
+    # Cloned from Slide 3's two-card layout
     # =========================================================================
-    s5 = prs.slides[4]
-    # Card 1: Atharva Mendhulkar
-    # Card 2: Divyansh Seth
-    # Card 3: Academic Advisor
-    # Card 4: Industry Mentor
+    print("Creating Slide 5: Scientific Rigor & Limitations...")
+    s5_new = prs.slides.add_slide(prs.slide_layouts[0])
+    for sp in list(s5_new.shapes):
+        sp._element.getparent().remove(sp._element)
+    for sp in s3.shapes:
+        new_elem = copy.deepcopy(sp._element)
+        s5_new.shapes._spTree.append(new_elem)
+
+    for shape in s5_new.shapes:
+        if shape.has_text_frame:
+            t = shape.text_frame.text.strip()
+            if "Innovation & Differentiation" in t:
+                set_text(shape, "Scientific Rigor & Honest Engineering", font_size=20, bold=True, color=RGBColor(0, 160, 50))
+            elif "What makes your approach genuinely new?" in t:
+                set_text(shape, "What Works, What Does Not Yet Work Universally, and Architectural Responses", font_size=11)
+            elif "INNOVATION & ORIGINALITY" in t:
+                set_text(shape, "HONEST LIMITATIONS & DEFENSE", font_size=9, bold=True)
+            elif "TODAY'S APPROACH" in t:
+                set_text(shape, "WHAT WORKS (BENCHMARK VALIDATED)", font_size=12, bold=True, color=RGBColor(0, 140, 40))
+            elif "YOUR APPROACH" in t:
+                set_text(shape, "LIMITATIONS & ARCHITECTURAL RESPONSES", font_size=12, bold=True, color=RGBColor(180, 50, 0))
+            elif shape.shape_id == 11:  # Left card body
+                works_text = (
+                    "✔ Explicit-Duration Semi-Markov Modeling:\n"
+                    "  Discrete events + non-parametric dwell p_m(d) cut RUL error by 47–53% vs deep CNN/LSTM baselines (18.1 vs 34.0/38.9 RMSE on DS01).\n\n"
+                    "✔ Stable Event Vocabulary Across Seeds:\n"
+                    "  Vector Quantization (K=16) discovers repeatable operational tokens across 10 random seeds (0.94+ cosine stability, low perplexity variance).\n\n"
+                    "✔ Rigorous Conformal Risk Bounds on DS01:\n"
+                    "  Leave-One-Engine-Out (LOEO) calibration achieves 92% empirical coverage at 90% nominal level, eliminating window pseudoreplication.\n\n"
+                    "✔ Intrinsic Explanation Faithfulness:\n"
+                    "  Masking flagged event windows directly reduces anomaly score by 0.18–0.72 (6–27%), proving explanations reflect actual model drivers."
+                )
+                set_text(shape, works_text, font_size=10)
+            elif shape.shape_id == 14:  # Right card body
+                limits_text = (
+                    "✖ Acoustic Discretization Penalty:\n"
+                    "  Discrete VQ loses high-frequency info on MIMII fans (AUROC 0.535 vs 0.628 continuous).\n"
+                    "  ↳ Response: Industrial Late-Fusion (continuous acoustic head + discrete grammar explanations).\n\n"
+                    "✖ Weak Degradation Health Index:\n"
+                    "  Health index Spearman correlation is weak (0.10–0.21) due to constant predictor artifact.\n"
+                    "  ↳ Response: Use RUL conformal bounds for replacement; decouple health scoring.\n\n"
+                    "✖ DS02 Small-Sample Conformal Limits:\n"
+                    "  DS02 conformal coverage fluctuates (55–100%) due to small sample size (N=5 calibration engines).\n"
+                    "  ↳ Response: Honestly flagged as unreliable for decision-making pending larger fleet N.\n\n"
+                    "✖ Unproven Field Deployment:\n"
+                    "  N-CMAPSS/MIMII are surrogate benchmarks; unvalidated on live Schneider switchgear.\n"
+                    "  ↳ Response: Advisory decision support only (human-in-the-loop); pilot on Harmony iPC."
+                )
+                set_text(shape, limits_text, font_size=10)
+            elif t == "5":
+                set_text(shape, "5", font_size=10)
+
+    # =========================================================================
+    # SLIDE 6 (Old Slide 5): Meet the Team
+    # =========================================================================
+    s6_team = prs.slides[4]
     card_map = {
-        # Card 1 (Atharva)
         10: ("Atharva Mendhulkar", 13, True),
         11: ("Computer Science & Engineering", 10, False),
         12: ("Lead AI/ML Architect & Backend — 1D Causal CNNs, Vector Quantizer (STE), Explicit-Duration HSMM Grammar, Automated Test Suite (260 tests), and Real-Time CLI Engine.", 9, False),
-        # Card 2 (Divyansh)
         16: ("Divyansh Seth", 13, True),
         17: ("Electrical & Electronics Engineering", 10, False),
         18: ("Power Systems & Asset Domain Lead — Switchgear Degradation Physics (Contact Resistance, Partial Discharge, Arc-Flash Risk), Sensor Telemetry, Conformal Safety Bounds & Business ROI Model.", 9, False),
-        # Card 3 (Academic Mentor)
         22: ("Academic Mentorship", 13, True),
         23: ("Dept. of Electrical & Computer Eng.", 10, False),
         24: ("Faculty Advisory — Guidance on stochastic processes, semi-Markov likelihood formulations, non-exponential wear distributions, and locked experimental peer review protocols.", 9, False),
-        # Card 4 (Industry Mentor)
         28: ("Schneider Electric Mentorship", 13, True),
         29: ("SE Electrifiers & Technical Mentors", 10, False),
         30: ("Industry Alignment — Mapped during Phase 3 Mentoring Cadence for EcoStruxure Asset Advisor integration, Masterpact MTZ telemetry contracts, and pilot testbench roadmaps.", 9, False),
     }
-
-    for shape in s5.shapes:
+    for shape in s6_team.shapes:
         if shape.shape_id in card_map and shape.has_text_frame:
             val, sz, bld = card_map[shape.shape_id]
             set_text(shape, val, font_size=sz, bold=bld)
@@ -225,10 +270,10 @@ def main():
             set_text(shape, "Cross-Disciplinary Team: Computer Science + Electrical Engineering | Dedicated Faculty & Industry Mentor Cadence", font_size=11, bold=True)
 
     # =========================================================================
-    # SLIDE 6: Roadmap & Next Steps
+    # SLIDE 7 (Old Slide 6): Roadmap & Next Steps
     # =========================================================================
-    s6 = prs.slides[5]
-    for shape in s6.shapes:
+    s7_roadmap = prs.slides[5]
+    for shape in s7_roadmap.shapes:
         if shape.has_text_frame:
             t = shape.text_frame.text.strip()
             if t.startswith("[ what you'll refine during the mentoring"):
@@ -254,10 +299,10 @@ def main():
                 set_text(shape, step3_text, font_size=11)
 
     # =========================================================================
-    # SLIDE 7: Thank You & Contact
+    # SLIDE 8 (Old Slide 7): Thank You & Contact
     # =========================================================================
-    s7 = prs.slides[6]
-    for shape in s7.shapes:
+    s8_thanks = prs.slides[6]
+    for shape in s8_thanks.shapes:
         if shape.has_text_frame:
             t = shape.text_frame.text.strip()
             if "[ Team Name ]" in t:
@@ -266,31 +311,39 @@ def main():
                 set_text(shape, "Atharva Mendhulkar (Atharvamendhulkar01@gmail.com) & Divyansh Seth\nProject Codebase & Verification: github.com/Atharva-Mendhulkar/aegis-1", font_size=13, bold=False)
 
     # =========================================================================
-    # SLIDE 8: MANDATORY Tagline Slide 13 from Kickoff PDF ("Advancing Energy Tech")
+    # REORDER SLIDES SO SLIDE 5 IS INSERTED RIGHT AFTER SLIDE 4
+    # Current order in prs: [S1, S2, S3, S4, S6_team, S7_road, S8_thanks, S5_new]
+    # We want: [S1, S2, S3, S4, S5_new, S6_team, S7_road, S8_thanks]
     # =========================================================================
-    if IMG_SLIDE13.exists():
-        print(f"Adding Mandatory Tagline Slide 8 from {IMG_SLIDE13.name}...")
-        blank_layout = prs.slide_layouts[0]
-        s8 = prs.slides.add_slide(blank_layout)
-        # Clear shapes on new blank slide
-        for sp in list(s8.shapes):
-            sp._element.getparent().remove(sp._element)
-        s8.shapes.add_picture(str(IMG_SLIDE13), 0, 0, width=prs.slide_width, height=prs.slide_height)
+    sldIdLst = prs._element.xpath('//p:sldIdLst')[0]
+    s5_elem = sldIdLst[-1]  # The newly appended slide 5
+    sldIdLst.remove(s5_elem)
+    sldIdLst.insert(4, s5_elem)  # Insert at index 4 (5th slide)
 
     # =========================================================================
-    # SLIDE 9: MANDATORY Closing CTA Slide 14 from Kickoff PDF ("se.com CTA")
+    # SLIDE 9: MANDATORY Tagline Slide 13 from Kickoff PDF ("Advancing Energy Tech")
     # =========================================================================
-    if IMG_SLIDE14.exists():
-        print(f"Adding Mandatory Closing CTA Slide 9 from {IMG_SLIDE14.name}...")
+    if IMG_SLIDE13.exists():
+        print(f"Adding Mandatory Tagline Slide 9 from {IMG_SLIDE13.name}...")
         blank_layout = prs.slide_layouts[0]
         s9 = prs.slides.add_slide(blank_layout)
         for sp in list(s9.shapes):
             sp._element.getparent().remove(sp._element)
-        s9.shapes.add_picture(str(IMG_SLIDE14), 0, 0, width=prs.slide_width, height=prs.slide_height)
+        s9.shapes.add_picture(str(IMG_SLIDE13), 0, 0, width=prs.slide_width, height=prs.slide_height)
 
-    # Save presentation
+    # =========================================================================
+    # SLIDE 10: MANDATORY Closing CTA Slide 14 from Kickoff PDF ("se.com CTA")
+    # =========================================================================
+    if IMG_SLIDE14.exists():
+        print(f"Adding Mandatory Closing CTA Slide 10 from {IMG_SLIDE14.name}...")
+        blank_layout = prs.slide_layouts[0]
+        s10 = prs.slides.add_slide(blank_layout)
+        for sp in list(s10.shapes):
+            sp._element.getparent().remove(sp._element)
+        s10.shapes.add_picture(str(IMG_SLIDE14), 0, 0, width=prs.slide_width, height=prs.slide_height)
+
     prs.save(OUTPUT_PATH)
-    print(f"\nSuccessfully generated complete pitch deck: {OUTPUT_PATH.name} (Total Slides: {len(prs.slides)})")
+    print(f"\nSuccessfully generated complete 10-slide pitch deck: {OUTPUT_PATH.name} (Total Slides: {len(prs.slides)})")
 
 
 if __name__ == "__main__":
