@@ -215,9 +215,9 @@ def run_unreliable_fallback():
     print("=" * 82 + "\n")
 
 
-def run_single():
+def run_single(asset_type: str = "switchgear", cycle: int = 42):
     print_banner()
-    print("\n[SNAPSHOT DEMO] SINGLE-WINDOW CAUSAL INFERENCE ON DS01 u2 (Cycle 42)\n")
+    print(f"\n[SNAPSHOT DEMO] SINGLE-WINDOW CAUSAL INFERENCE ON {asset_type.upper()} (Cycle {cycle})\n")
     step = {
         "cycle": 42,
         "state_id": 3,
@@ -245,6 +245,11 @@ def run_single():
     print("  Run with --trajectory for full multi-state progression.")
     print("  Run with --test-unreliable for graceful fallback demonstration.")
     print("=" * 82 + "\n")
+    return step
+
+
+# Alias for programmatic invocation & test suites
+run_demo = run_single
 
 
 def main():
