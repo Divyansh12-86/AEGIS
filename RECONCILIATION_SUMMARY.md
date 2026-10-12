@@ -12,12 +12,12 @@
 | Causal ablation A-F | ✅ Complete | Arm E: DS01 18.1, DS02 22.8 RMSE |
 | Dwell vs Full features | ✅ Complete | DS01: full wins; DS02: tie |
 | W=16 LOEO sweep | ✅ Complete | **FAILED** — W=4 remains default |
-| Conformal RUL intervals | ⚠️ Partial | DS01 works (conservative); DS02 unreliable (5 cal engines) — pooling DS01+DS02 (11 engines) improves DS02 to 73% at 90% |
-| MIMII em_restarts=3 | ⏳ In Progress | id_00 done (0.600 AUROC), id_02-06 pending |
+| Conformal RUL intervals | ⚠️ Partial | DS01 works (conservative); DS02 unreliable (5 cal engines) — pooling skipped (unverified exchangeability, still < nominal) |
+| MIMII em_restarts=3 | ⏳ Frozen | id_00 done (0.600 AUROC, em_restarts=3); id_02/04/06 at em_restarts=0 (0.628 macro AUROC) — frozen pending full re-run |
 | Validation-set re-sweep | ❌ Not started | Script has bugs for N-CMAPSS RUL |
 | MIMII docs updated | ⏳ Pending | Waiting for full em_restarts=3 re-run |
 
-**Architecture search is CLOSED:** W=16 and TCN both failed the project's ≥4/6 LOEO success bar. Conformal intervals work on DS01 (conservative); DS02 requires pooling DS01+DS02 (11 engines) to reach ~73% at 90% — still below nominal, needs more cal engines or different approach. MIMII em_restarts=3 re-run in progress.
+**Architecture search is CLOSED:** W=16 and TCN both failed the project's ≥4/6 LOEO success bar. Conformal intervals work on DS01 (conservative); DS02 is unreliable due to coarse quantile granularity (5 cal engines); pooling skipped. MIMII frozen at em_restarts=0 (0.628 macro AUROC); id_00 em_restarts=3 footnote (0.600 AUROC) documented separately.
 
 ---
 
@@ -65,7 +65,7 @@
 All 4 MIMII IDs show identical state occupancy `[0.33, 0.33, 0.33]` in `mimii_fan_id_*_interpretability.json`
 
 ### Root Cause Analysis
-**Root cause identified:** `EM_restarts=0` for MIMII in the locked protocol (vs `em_restarts=3` for N-CMAPSS)
+**Suspected cause:** `EM_restarts=0` for MIMII in the locked protocol (vs `em_restarts=3` for N-CMAPSS) — confirmed by code inspection, but occupancy not verified on em_restarts=3 runs (id_02/04/06 not run).
 
 **Evidence:** `egpm/experiments/mimii_run.py:85` — `em_restarts: int = 0` (default for MIMII)
 
@@ -202,7 +202,7 @@ All 4 MIMII IDs show identical state occupancy `[0.33, 0.33, 0.33]` in `mimii_fa
 | Claim | Status | Evidence |
 |-------|--------|----------|
 | "0.697 macro AUROC for continuous-HSMM" | **INVALID** | Test-set, buggy code |
-| "Continuous beats discrete on MIMII" | **VERIFIED (margin narrow)** | Continuous-HSMM 0.628 vs VQ+HSMM 0.559; Continuous-AE 0.596 nearly ties Continuous-HSMM |
+| "Continuous beats discrete on MIMII" | **VERIFIED (em_restarts=0)** | Continuous-HSMM 0.628 vs VQ+HSMM 0.559; Continuous-AE 0.596 nearly ties Continuous-HSMM |
 | "A5 ablation: attention no gain" | **FABRICATED** | No A5 ablation exists in codebase |
 | "GrammarViz fails on id_00 specifically" | **FALSE** | Fails on ALL IDs (0.152) |
 | "State occupancy uniform = id_00 fault" | **PROTOCOL GAP** | EM_restarts=0 causes uniform occupancy |
