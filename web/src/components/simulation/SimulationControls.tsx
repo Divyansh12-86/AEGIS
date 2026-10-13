@@ -50,6 +50,34 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           </select>
         </div>
 
+        {/* Quick Scenario Buttons for Immediate Situation Testing */}
+        <div className="hidden lg:flex items-center gap-1">
+          {Object.values(SCENARIOS).map((s) => {
+            const isSel = currentScenarioId === s.id;
+            const shortLabel =
+              s.id === "scenario_a"
+                ? "A: Cruise"
+                : s.id === "scenario_b"
+                ? "B: Regime Shift"
+                : s.id === "scenario_c"
+                ? "C: Runaway"
+                : "D: Fallback Guard";
+            return (
+              <button
+                key={s.id}
+                onClick={() => onSelectScenario(s.id)}
+                className={`text-[10px] font-mono px-2 py-1 rounded border transition-all ${
+                  isSel
+                    ? "bg-[#171717] text-white border-[#171717] font-bold shadow-xs"
+                    : "bg-[#F9FAFB] text-[#4B5563] border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                {shortLabel}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Backend / Replay Mode Indicator Badge */}
         <div
           className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded border ${

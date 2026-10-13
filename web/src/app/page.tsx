@@ -170,6 +170,104 @@ export default function EGPMIndustrialSimulation() {
         />
       </div>
 
+      {/* Dynamic Situational Awareness Banner (Morphs in Real Time According to Situation) */}
+      {(() => {
+        const isUnreliable = stepData?.is_unreliable || false;
+        const isAnomalous = stepData?.anomaly?.is_anomalous || false;
+        const stateId = stepData?.state_id;
+        const t50 = stepData?.sensor_readings?.T50 ?? 1285.4;
+        const t30 = stepData?.sensor_readings?.T30 ?? 1490.2;
+        const alt = stepData?.sensor_readings?.alt ?? 25000;
+        const tra = stepData?.sensor_readings?.TRA ?? 65;
+        const mach = stepData?.sensor_readings?.Mach ?? 0.65;
+        const rulVal = stepData?.rul?.expected;
+
+        let bannerTheme = "bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]";
+        let badgeColor = "bg-[#10B981] text-white";
+        let title = "SITUATION: NOMINAL STEADY-STATE SURVEILLANCE";
+        let desc = `Asset DS01_u2 operating stably within nominal aero-thermal envelope (Alt ${alt.toFixed(0)} ft, Mach ${mach.toFixed(2)}, TRA ${tra.toFixed(0)}%). Discrete token E03 dominant, State 1 active. Estimated RUL is ${rulVal?.toFixed(1) ?? "88.5"} cycles.`;
+
+        if (isUnreliable) {
+          bannerTheme = "bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]";
+          badgeColor = "bg-[#DC2626] text-white animate-pulse";
+          title = "SITUATION: SAFETY GUARD ACTIVATED — UNRELIABLE CODEBOOK REPRESENTATION";
+          desc = `Quantization error exceeded 3× variance bound (||z - e_k|| = 0.482) with high belief entropy H=1.58 nats. Structured RUL is suppressed to prevent hallucination. Fallback raw sensor alarm triggered.`;
+        } else if (isAnomalous || stateId === 4 || stateId === 5 || t50 > 1380) {
+          bannerTheme = "bg-[#FEF2F2] border-[#EF4444] text-[#991B1B]";
+          badgeColor = "bg-[#EF4444] text-white animate-pulse";
+          title = `SITUATION: ACCELERATING THERMAL DEGRADATION PRECURSOR (SURPRISAL ${stepData?.anomaly?.score?.toFixed(2) ?? "1.84"} / 1.25)`;
+          desc = `Critical exhaust gas temperature T50 = ${t50.toFixed(1)} °R (+58 °R above redline) and T30 = ${t30.toFixed(1)} °R. RUL dropped rapidly to ${rulVal?.toFixed(1) ?? "14.8"} cycles [CI90: ${stepData?.rul?.ci90?.[0]?.toFixed(1) ?? "11.2"} - ${stepData?.rul?.ci90?.[1]?.toFixed(1) ?? "18.9"}]. Immediate borescope inspection required.`;
+        } else if (currentScenarioId === "scenario_b" || stateId === 2 || stateId === 3 || tra > 75) {
+          bannerTheme = "bg-[#EFF6FF] border-[#BFDBFE] text-[#1E3A8A]";
+          badgeColor = "bg-[#3563FF] text-white";
+          title = "SITUATION: CHANGING FLIGHT REGIME & TRANSIENT OPERATING CONDITIONS";
+          desc = `Altitude climb to ${alt.toFixed(0)} ft, Mach ${mach.toFixed(2)}, and throttle ramp TRA ${tra.toFixed(1)}%. Causal temporal encoder decouples environmental load from mechanical wear. Token shifted to E05/E07 without failure alarms.`;
+        }
+
+        return (
+          <div className={`border rounded-lg p-3 mb-3 transition-all flex flex-wrap items-center justify-between gap-3 shadow-xs ${bannerTheme}`}>
+            <div className="flex items-start gap-2.5 max-w-3xl">
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase shrink-0 mt-0.5 ${badgeColor}`}>
+                LIVE REGIME
+              </span>
+              <div>
+                <div className="font-mono text-xs font-bold uppercase tracking-wide">
+                  {title}
+                </div>
+                <p className="text-xs mt-0.5 font-medium leading-relaxed opacity-90">
+                  {desc}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick 1-Click Scenario Buttons */}
+            <div className="flex items-center gap-1 font-mono text-[11px] shrink-0">
+              <span className="text-[10px] text-[#6B7280] mr-1 hidden sm:inline">Jump Situation:</span>
+              <button
+                onClick={() => handleSelectScenario("scenario_a")}
+                className={`px-2 py-1 rounded border transition-all ${
+                  currentScenarioId === "scenario_a"
+                    ? "bg-[#10B981] text-white border-[#10B981] font-bold shadow-xs"
+                    : "bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                A: Cruise
+              </button>
+              <button
+                onClick={() => handleSelectScenario("scenario_b")}
+                className={`px-2 py-1 rounded border transition-all ${
+                  currentScenarioId === "scenario_b"
+                    ? "bg-[#3563FF] text-white border-[#3563FF] font-bold shadow-xs"
+                    : "bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                B: Regime Shift
+              </button>
+              <button
+                onClick={() => handleSelectScenario("scenario_c")}
+                className={`px-2 py-1 rounded border transition-all ${
+                  currentScenarioId === "scenario_c"
+                    ? "bg-[#EF4444] text-white border-[#EF4444] font-bold shadow-xs"
+                    : "bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                C: Thermal Alert
+              </button>
+              <button
+                onClick={() => handleSelectScenario("scenario_d")}
+                className={`px-2 py-1 rounded border transition-all ${
+                  currentScenarioId === "scenario_d"
+                    ? "bg-[#DC2626] text-white border-[#DC2626] font-bold shadow-xs"
+                    : "bg-white text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                D: Fallback Guard
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Main Layout Grid */}
       <main className="space-y-3">
         {/* Row 1: The Machine Test Stand (Left) & Sensor Inspector (Right) */}

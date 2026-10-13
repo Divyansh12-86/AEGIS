@@ -21,6 +21,7 @@ interface SensorStation {
   badgeX: number;
   badgeY: number;
   wirePath: string;
+  nominalMax: number;
 }
 
 const SENSOR_STATIONS: SensorStation[] = [
@@ -31,9 +32,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "T2 / P2",
     sublabel: "Fan Inlet",
     stationId: "STA 2.0",
-    badgeX: 96,
+    badgeX: 92,
     badgeY: 215,
     wirePath: "M 120 190 L 120 52 L 605 52",
+    nominalMax: 560,
   },
   {
     sensorName: "T24",
@@ -42,9 +44,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "T24",
     sublabel: "LPC Outlet",
     stationId: "STA 2.4",
-    badgeX: 191,
+    badgeX: 187,
     badgeY: 200,
     wirePath: "M 215 175 L 215 52 L 605 52",
+    nominalMax: 680,
   },
   {
     sensorName: "T30",
@@ -53,9 +56,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "T30 / P30",
     sublabel: "HPC Combustor",
     stationId: "STA 3.0",
-    badgeX: 301,
+    badgeX: 297,
     badgeY: 210,
     wirePath: "M 325 185 L 325 52 L 605 52",
+    nominalMax: 1680,
   },
   {
     sensorName: "Wf",
@@ -64,9 +68,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "Wf",
     sublabel: "Fuel Manifold",
     stationId: "STA 3.5",
-    badgeX: 356,
+    badgeX: 352,
     badgeY: 272,
     wirePath: "M 380 240 L 380 264 L 355 264 L 355 52 L 605 52",
+    nominalMax: 5.5,
   },
   {
     sensorName: "Nc",
@@ -75,9 +80,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "Nc / Nf",
     sublabel: "Spool Speeds",
     stationId: "STA 4.0",
-    badgeX: 416,
-    badgeY: 120,
+    badgeX: 412,
+    badgeY: 118,
     wirePath: "M 440 150 L 440 52 L 605 52",
+    nominalMax: 9400,
   },
   {
     sensorName: "T50",
@@ -86,9 +92,10 @@ const SENSOR_STATIONS: SensorStation[] = [
     label: "T50",
     sublabel: "Turbine Exhaust",
     stationId: "STA 5.0",
-    badgeX: 516,
+    badgeX: 512,
     badgeY: 215,
     wirePath: "M 540 190 L 540 52 L 605 52",
+    nominalMax: 1380,
   },
 ];
 
@@ -100,8 +107,62 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
   stepData,
 }) => {
   const currentVal = stepData?.sensor_readings?.[selectedSensor.name];
-  const isAnomalous = stepData?.is_anomaly || false;
+  const isAnomalous = stepData?.is_anomaly || stepData?.anomaly?.is_anomalous || false;
   const isUnreliable = stepData?.is_unreliable || false;
+  const stateId = stepData?.state_id;
+
+  // Extract key aerothermal telemetry
+  const t2 = stepData?.sensor_readings?.T2 ?? 512.4;
+  const t24 = stepData?.sensor_readings?.T24 ?? 618.5;
+  const t30 = stepData?.sensor_readings?.T30 ?? 1490.2;
+  const t50 = stepData?.sensor_readings?.T50 ?? 1285.4;
+  const wf = stepData?.sensor_readings?.Wf ?? 3.65;
+  const nc = stepData?.sensor_readings?.Nc ?? 8850.0;
+  const nf = stepData?.sensor_readings?.Nf ?? 2150.0;
+  const alt = stepData?.sensor_readings?.alt ?? 25000.0;
+  const mach = stepData?.sensor_readings?.Mach ?? 0.65;
+  const tra = stepData?.sensor_readings?.TRA ?? 65.0;
+
+  // Heat & situational metrics
+  const isOverheat = t50 > 1360 || t30 > 1650 || isAnomalous;
+  const isCriticalHeat = t50 > 1400 || isUnreliable;
+  const coreHeatNormalized = Math.min(1, Math.max(0, (t30 - 1420) / 320));
+  const exhaustHeatRatio = Math.min(1, Math.max(0, (t50 - 1240) / 240));
+
+  // Dynamic fan rotation period based on spool speed Nc (0.2s to 0.9s)
+  const fanSpinSec = Math.max(0.2, Math.min(1.0, (8850 / (nc || 8850)) * 0.45));
+
+  // Determine situational banner text & tone
+  let regimeLabel = "NOMINAL CRUISE";
+  let regimeColor = "#10B981";
+  let regimeBg = "#ECFDF5";
+  let regimeBorder = "#A7F3D0";
+
+  if (isUnreliable) {
+    regimeLabel = "SAFETY GUARD: UNRELIABLE CODEBOOK";
+    regimeColor = "#DC2626";
+    regimeBg = "#FEF2F2";
+    regimeBorder = "#FCA5A5";
+  } else if (isAnomalous || stateId === 4 || stateId === 5) {
+    regimeLabel = "ALERT: ACCELERATING THERMAL RUNAWAY";
+    regimeColor = "#DC2626";
+    regimeBg = "#FEF2F2";
+    regimeBorder = "#FCA5A5";
+  } else if (tra > 75 || stateId === 2 || stateId === 3) {
+    regimeLabel = "CLIMB / HIGH THROTTLE TRANSITION";
+    regimeColor = "#D97706";
+    regimeBg = "#FFFBEB";
+    regimeBorder = "#FDE68A";
+  }
+
+  // Get live formatted string for any sensor
+  const getSensorDisplay = (name: string) => {
+    const val = stepData?.sensor_readings?.[name];
+    if (val === undefined) return "—";
+    if (name === "Nc" || name === "Nf") return `${val.toFixed(0)} rpm`;
+    if (name === "Wf") return `${val.toFixed(2)} pps`;
+    return `${val.toFixed(1)} °R`;
+  };
 
   return (
     <div className="relative flex flex-col bg-white border border-[#E5E7EB] rounded-lg p-4 shadow-sm select-none">
@@ -111,7 +172,13 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           <div className="flex items-center gap-2">
             <span
               className={`inline-block w-2.5 h-2.5 rounded-full ${
-                isProcessing ? "bg-[#3563FF] animate-ping" : "bg-[#10B981]"
+                isCriticalHeat
+                  ? "bg-[#EF4444] animate-ping"
+                  : isOverheat
+                  ? "bg-[#F59E0B] animate-pulse"
+                  : isProcessing
+                  ? "bg-[#3563FF] animate-ping"
+                  : "bg-[#10B981]"
               }`}
             />
             <h2 className="text-sm font-semibold tracking-wide text-[#171717] uppercase font-mono">
@@ -130,7 +197,7 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
       </div>
 
       {/* Interactive Vector Scene */}
-      <div className="relative w-full h-[360px] bg-[#F9FAFB] border border-[#E5E7EB] rounded overflow-hidden flex items-center justify-center">
+      <div className="relative w-full h-[370px] bg-[#F9FAFB] border border-[#E5E7EB] rounded overflow-hidden flex items-center justify-center">
         <svg
           viewBox="0 0 680 340"
           className="w-full h-full"
@@ -143,6 +210,15 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   from { stroke-dashoffset: 24; }
                   to { stroke-dashoffset: 0; }
                 }
+                @keyframes fanBladeSpin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+                @keyframes heatShimmer {
+                  0% { opacity: 0.6; transform: scaleY(1); }
+                  50% { opacity: 0.9; transform: scaleY(1.08); }
+                  100% { opacity: 0.6; transform: scaleY(1); }
+                }
                 .telemetry-active-wire {
                   stroke-dasharray: 6 4;
                   animation: telemetryFlow 0.8s linear infinite;
@@ -150,6 +226,14 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                 .telemetry-idle-wire {
                   stroke-dasharray: 2 6;
                   animation: telemetryFlow 2.4s linear infinite;
+                }
+                .fan-rotor {
+                  transform-origin: 150px 190px;
+                  animation: fanBladeSpin ${fanSpinSec}s linear infinite;
+                }
+                .heat-shimmer {
+                  animation: heatShimmer 1.8s ease-in-out infinite;
+                  transform-origin: 375px 190px;
                 }
               `}
             </style>
@@ -166,12 +250,80 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                 strokeWidth="0.75"
               />
             </pattern>
+
+            {/* Dynamic Core Thermal Gradient */}
+            <linearGradient id="coreThermalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#E2E8F0" />
+              <stop offset="25%" stopColor={isOverheat ? "#FED7AA" : "#CBD5E1"} />
+              <stop
+                offset="60%"
+                stopColor={
+                  isCriticalHeat
+                    ? "#FCA5A5"
+                    : isOverheat
+                    ? "#FDBA74"
+                    : "#F1F5F9"
+                }
+              />
+              <stop
+                offset="85%"
+                stopColor={
+                  isCriticalHeat
+                    ? "#EF4444"
+                    : isOverheat
+                    ? "#FB923C"
+                    : "#E2E8F0"
+                }
+              />
+              <stop
+                offset="100%"
+                stopColor={
+                  isCriticalHeat
+                    ? "#DC2626"
+                    : isOverheat
+                    ? "#F97316"
+                    : "#D1D5DB"
+                }
+              />
+            </linearGradient>
+
+            {/* Dynamic Exhaust Plume Gradient */}
+            <linearGradient id="plumeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop
+                offset="0%"
+                stopColor={
+                  isCriticalHeat
+                    ? "#EF4444"
+                    : isOverheat
+                    ? "#F59E0B"
+                    : "#9CA3AF"
+                }
+                stopOpacity={0.8}
+              />
+              <stop
+                offset="100%"
+                stopColor={
+                  isCriticalHeat
+                    ? "#DC2626"
+                    : isOverheat
+                    ? "#D97706"
+                    : "#E5E7EB"
+                }
+                stopOpacity={0.0}
+              />
+            </linearGradient>
+
             {/* Blue glow filter for active telemetry wiring */}
             <filter id="blueGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
-            {/* Sensor tap marker filter */}
+            {/* Heat glow filter for combustion/exhaust */}
+            <filter id="heatGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            {/* Marker shadow filter */}
             <filter id="markerShadow" x="-10%" y="-10%" width="120%" height="120%">
               <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.15" />
             </filter>
@@ -180,25 +332,91 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           {/* Background Engineering Grid */}
           <rect width="680" height="340" fill="url(#engineeringGrid)" />
 
-          {/* Test Cell Mounting Infrastructure */}
-          {/* Ceiling Structural I-Beam Gantry */}
-          <line x1="60" y1="16" x2="620" y2="16" stroke="#4B5563" strokeWidth="3" />
-          <line x1="60" y1="19" x2="620" y2="19" stroke="#9CA3AF" strokeWidth="2" />
-          <line x1="60" y1="22" x2="620" y2="22" stroke="#4B5563" strokeWidth="3" />
+          {/* ========================================================================= */}
+          {/* TACTICAL OPERATING REGIME HUD TAPE (y=14..32)                             */}
+          {/* ========================================================================= */}
+          <g>
+            <rect
+              x="60"
+              y="14"
+              width="535"
+              height="20"
+              rx="3"
+              fill={regimeBg}
+              stroke={regimeBorder}
+              strokeWidth="1"
+            />
+            {/* Left Status Pill */}
+            <circle cx="72" cy="24" r="3.5" fill={regimeColor} className={isOverheat ? "animate-ping" : ""} />
+            <circle cx="72" cy="24" r="2.5" fill={regimeColor} />
+            <text
+              x="82"
+              y="27"
+              fontSize="7.5"
+              fontFamily="monospace"
+              fontWeight="bold"
+              fill={regimeColor}
+            >
+              {regimeLabel}
+            </text>
 
-          {/* Overhead Suspension Pylons (cleanly separated from wiring) */}
-          {/* Forward Suspension Pylon (attaches to Fan/LPC casing) */}
+            {/* Flight Envelope Parameters */}
+            <text
+              x="250"
+              y="27"
+              fontSize="7"
+              fontFamily="monospace"
+              fill="#4B5563"
+            >
+              ALT: {alt.toFixed(0)} ft • M: {mach.toFixed(2)} • TRA: {tra.toFixed(1)}%
+            </text>
+
+            {/* Core Thermal Load Bar */}
+            <text
+              x="425"
+              y="27"
+              fontSize="7"
+              fontFamily="monospace"
+              fill="#4B5563"
+            >
+              T_CORE: {t30.toFixed(0)}°R
+            </text>
+            <rect x="490" y="20" width="40" height="7" rx="1.5" fill="#E5E7EB" />
+            <rect
+              x="490"
+              y="20"
+              width={Math.round(coreHeatNormalized * 40)}
+              height="7"
+              rx="1.5"
+              fill={isCriticalHeat ? "#EF4444" : isOverheat ? "#F59E0B" : "#3563FF"}
+            />
+            <text
+              x="538"
+              y="26"
+              fontSize="6"
+              fontFamily="monospace"
+              fill={isOverheat ? "#DC2626" : "#6B7280"}
+              fontWeight="bold"
+            >
+              {((coreHeatNormalized) * 100).toFixed(0)}%
+            </text>
+          </g>
+
+          {/* Test Cell Mounting Infrastructure */}
+          {/* Ceiling Gantry Rail */}
+          <line x1="60" y1="36" x2="600" y2="36" stroke="#4B5563" strokeWidth="2.5" />
+
+          {/* Suspension Pylons (attaches to Fan/LPC and Turbine casing) */}
           <polygon
-            points="195,22 215,22 208,110 202,110"
+            points="195,36 215,36 208,110 202,110"
             fill="#E5E7EB"
             stroke="#6B7280"
             strokeWidth="1.2"
           />
           <circle cx="205" cy="110" r="3.5" fill="#171717" stroke="#9CA3AF" strokeWidth="1" />
 
-          {/* Aft Suspension Pylon (attaches to Turbine casing) */}
           <polygon
-            points="465,22 485,22 478,115 472,115"
+            points="465,36 485,36 478,115 472,115"
             fill="#E5E7EB"
             stroke="#6B7280"
             strokeWidth="1.2"
@@ -208,8 +426,20 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           {/* Ground Support Pedestals & Load Cells */}
           <rect x="180" y="270" width="40" height="60" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1.5" />
           <rect x="460" y="270" width="40" height="60" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1.5" />
-          <circle cx="200" cy="270" r="3.5" fill="#171717" />
-          <circle cx="480" cy="270" r="3.5" fill="#171717" />
+          <circle
+            cx="200"
+            cy="270"
+            r="3.5"
+            fill={isOverheat ? "#EF4444" : "#171717"}
+            className={isOverheat ? "animate-pulse" : ""}
+          />
+          <circle
+            cx="480"
+            cy="270"
+            r="3.5"
+            fill={isOverheat ? "#EF4444" : "#171717"}
+            className={isOverheat ? "animate-pulse" : ""}
+          />
           <line x1="150" y1="330" x2="530" y2="330" stroke="#171717" strokeWidth="2" />
           {/* Ground Hatchings */}
           <path
@@ -219,16 +449,8 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           />
 
           {/* OVERHEAD CABLE LADDER (Wireway Trunk at y=48..56) */}
-          {/* Cable Ladder Hanger Brackets from Ceiling Beam */}
-          <line x1="160" y1="22" x2="160" y2="48" stroke="#9CA3AF" strokeWidth="1" />
-          <line x1="280" y1="22" x2="280" y2="48" stroke="#9CA3AF" strokeWidth="1" />
-          <line x1="400" y1="22" x2="400" y2="48" stroke="#9CA3AF" strokeWidth="1" />
-          <line x1="520" y1="22" x2="520" y2="48" stroke="#9CA3AF" strokeWidth="1" />
-
-          {/* Cable Ladder Tray Rails */}
           <line x1="90" y1="48" x2="605" y2="48" stroke="#9CA3AF" strokeWidth="1.5" />
           <line x1="90" y1="56" x2="605" y2="56" stroke="#9CA3AF" strokeWidth="1.5" />
-          {/* Cable Ladder Rungs */}
           {Array.from({ length: 26 }).map((_, i) => (
             <line
               key={i}
@@ -241,7 +463,10 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             />
           ))}
 
-          {/* Engine Nacelle & Core Geometry (Precise Vector Schematic) */}
+          {/* ========================================================================= */}
+          {/* ENGINE NACELLE & CORE GEOMETRY (DYNAMIC THERMAL SHADING)                  */}
+          {/* ========================================================================= */}
+
           {/* Outer Nacelle Cowling Profile */}
           <path
             d="M 90 120 C 120 100, 200 95, 300 95 C 400 95, 480 100, 580 140 L 570 240 C 480 280, 400 285, 300 285 C 200 285, 120 280, 90 260 Z"
@@ -252,57 +477,148 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           {/* Intake Cowl Lip */}
           <ellipse cx="95" cy="190" rx="20" ry="70" fill="#F3F4F6" stroke="#171717" strokeWidth="2" />
 
-          {/* Fan Spinner Cone */}
+          {/* Dynamic Rotating Fan Blades Assembly */}
+          <g className="fan-rotor">
+            {/* Fan Blades Disk (8 blades radiating from hub) */}
+            {Array.from({ length: 8 }).map((_, bIdx) => {
+              const angle = (bIdx * 45 * Math.PI) / 180;
+              const bx = 150 + Math.cos(angle) * 58;
+              const by = 190 + Math.sin(angle) * 58;
+              return (
+                <line
+                  key={bIdx}
+                  x1="150"
+                  y1="190"
+                  x2={bx}
+                  y2={by}
+                  stroke="#374151"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  opacity="0.85"
+                />
+              );
+            })}
+          </g>
+
+          {/* Stationary Guide Stator Disk */}
+          <line x1="158" y1="130" x2="158" y2="250" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="3 3" />
+
+          {/* Fan Spinner Center Cone */}
           <path d="M 85 190 L 150 170 L 150 210 Z" fill="#D1D5DB" stroke="#171717" strokeWidth="1.5" />
+          <circle cx="85" cy="190" r="3" fill="#3563FF" />
 
-          {/* Fan Blades Disk with Guide Stators */}
-          <line x1="150" y1="125" x2="150" y2="255" stroke="#374151" strokeWidth="3" />
-          <line x1="156" y1="130" x2="156" y2="250" stroke="#9CA3AF" strokeWidth="1.5" strokeDasharray="3 3" />
-
-          {/* Core Engine Casing (Inner Spool Nacelle) */}
+          {/* Core Engine Casing (DYNAMICTHERMAL GRADIENT) */}
           <path
             d="M 170 150 L 520 160 L 520 220 L 170 230 Z"
-            fill="#F3F4F6"
-            stroke="#4B5563"
+            fill="url(#coreThermalGrad)"
+            stroke={isCriticalHeat ? "#EF4444" : isOverheat ? "#F59E0B" : "#4B5563"}
             strokeWidth="1.5"
           />
 
           {/* Station 2.0 - 2.4: Low-Pressure Compressor (LPC) Section */}
-          <rect x="180" y="155" width="60" height="70" fill="#E5E7EB" stroke="#6B7280" strokeWidth="1" />
-          <text x="210" y="195" fontSize="8" fill="#6B7280" textAnchor="middle" fontFamily="monospace">LPC</text>
+          <rect x="180" y="155" width="60" height="70" fill="#E5E7EB" stroke="#6B7280" strokeWidth="1" opacity="0.8" />
+          <text x="210" y="195" fontSize="8" fill="#4B5563" textAnchor="middle" fontFamily="monospace" fontWeight="bold">LPC</text>
 
           {/* Station 2.4 - 3.0: High-Pressure Compressor (HPC) Section */}
-          <rect x="250" y="158" width="90" height="64" fill="#E5E7EB" stroke="#6B7280" strokeWidth="1" />
-          <text x="295" y="195" fontSize="8" fill="#6B7280" textAnchor="middle" fontFamily="monospace">HPC</text>
+          <rect
+            x="250"
+            y="158"
+            width="90"
+            height="64"
+            fill={isOverheat ? "#FEF3C7" : "#E5E7EB"}
+            stroke={isOverheat ? "#F59E0B" : "#6B7280"}
+            strokeWidth="1"
+            opacity="0.85"
+          />
+          <text x="295" y="195" fontSize="8" fill="#4B5563" textAnchor="middle" fontFamily="monospace" fontWeight="bold">HPC</text>
 
-          {/* Station 3.0 - 3.5: Combustion Chamber (Burner) */}
+          {/* Station 3.0 - 3.5: Combustion Chamber (Burner) — Dynamic Flames */}
           <path
             d="M 350 162 L 400 162 L 400 218 L 350 218 Z"
-            fill="#FEE2E2"
-            stroke="#EF4444"
-            strokeWidth="1.2"
-            strokeDasharray="4 2"
+            fill={
+              isCriticalHeat
+                ? "#FEE2E2"
+                : isOverheat
+                ? "#FEF3C7"
+                : "#FEE2E2"
+            }
+            stroke={isCriticalHeat ? "#DC2626" : isOverheat ? "#D97706" : "#EF4444"}
+            strokeWidth={isOverheat ? 2 : 1.2}
+            strokeDasharray={isOverheat ? "none" : "4 2"}
+            className={isOverheat ? "heat-shimmer" : ""}
           />
-          <text x="375" y="193" fontSize="8" fill="#B91C1C" textAnchor="middle" fontFamily="monospace" fontWeight="bold">BURNER</text>
+          <text
+            x="375"
+            y="193"
+            fontSize="8"
+            fill={isCriticalHeat ? "#B91C1C" : isOverheat ? "#B45309" : "#B91C1C"}
+            textAnchor="middle"
+            fontFamily="monospace"
+            fontWeight="bold"
+          >
+            BURNER
+          </text>
 
           {/* Station 4.0: High-Pressure Turbine (HPT) */}
-          <rect x="410" y="160" width="40" height="60" fill="#E5E7EB" stroke="#6B7280" strokeWidth="1" />
-          <text x="430" y="195" fontSize="8" fill="#6B7280" textAnchor="middle" fontFamily="monospace">HPT</text>
+          <rect
+            x="410"
+            y="160"
+            width="40"
+            height="60"
+            fill={isCriticalHeat ? "#FEE2E2" : isOverheat ? "#FED7AA" : "#E5E7EB"}
+            stroke={isCriticalHeat ? "#EF4444" : "#6B7280"}
+            strokeWidth="1"
+          />
+          <text x="430" y="195" fontSize="8" fill="#4B5563" textAnchor="middle" fontFamily="monospace" fontWeight="bold">HPT</text>
 
           {/* Station 5.0: Low-Pressure Turbine (LPT) */}
-          <rect x="460" y="163" width="50" height="54" fill="#E5E7EB" stroke="#6B7280" strokeWidth="1" />
-          <text x="485" y="195" fontSize="8" fill="#6B7280" textAnchor="middle" fontFamily="monospace">LPT</text>
+          <rect
+            x="460"
+            y="163"
+            width="50"
+            height="54"
+            fill={isCriticalHeat ? "#FEE2E2" : isOverheat ? "#FED7AA" : "#E5E7EB"}
+            stroke={isCriticalHeat ? "#EF4444" : "#6B7280"}
+            strokeWidth="1"
+          />
+          <text x="485" y="195" fontSize="8" fill="#4B5563" textAnchor="middle" fontFamily="monospace" fontWeight="bold">LPT</text>
 
           {/* Core Exhaust Nozzle & Centerbody */}
-          <path d="M 520 170 L 590 180 L 590 200 L 520 210 Z" fill="#D1D5DB" stroke="#171717" strokeWidth="1.5" />
-
-          {/* Exhaust Plume Guide Vectors */}
           <path
-            d="M 590 185 C 620 180, 640 175, 660 170 M 590 195 C 620 200, 640 205, 660 210"
-            stroke="#9CA3AF"
-            strokeWidth="1.2"
-            strokeDasharray="3 3"
+            d="M 520 170 L 590 180 L 590 200 L 520 210 Z"
+            fill={isCriticalHeat ? "#FCA5A5" : "#D1D5DB"}
+            stroke={isCriticalHeat ? "#DC2626" : "#171717"}
+            strokeWidth="1.5"
           />
+
+          {/* DYNAMIC HIGH-VELOCITY JET EXHAUST PLUME */}
+          <g>
+            {/* Outer Exhaust Plume Core */}
+            <path
+              d="M 590 180 C 625 170, 650 160, 675 155 L 675 225 C 650 220, 625 210, 590 200 Z"
+              fill="url(#plumeGrad)"
+              opacity={isOverheat ? 0.75 : 0.35}
+            />
+            {/* Streamline Vectors */}
+            <path
+              d="M 590 185 C 620 180, 645 175, 670 170 M 590 195 C 620 200, 645 205, 670 210"
+              stroke={isCriticalHeat ? "#EF4444" : isOverheat ? "#F59E0B" : "#9CA3AF"}
+              strokeWidth={isOverheat ? 1.8 : 1.2}
+              strokeDasharray="4 3"
+              className="telemetry-active-wire"
+            />
+            {/* Centerline Mach Streak */}
+            <line
+              x1="590"
+              y1="190"
+              x2="675"
+              y2="190"
+              stroke={isCriticalHeat ? "#FFFFFF" : isOverheat ? "#FDE68A" : "#D1D5DB"}
+              strokeWidth={isOverheat ? 2 : 1}
+              strokeDasharray="6 4"
+              className="telemetry-active-wire"
+            />
+          </g>
 
           {/* Mechanical Station Datum Markers along Bottom */}
           <g fontSize="7" fill="#9CA3AF" fontFamily="monospace" textAnchor="middle">
@@ -323,7 +639,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             const isSelected = selectedSensor.name === station.sensorName;
             return (
               <g key={`conduit-base-${station.sensorName}`}>
-                {/* Physical Conduit Outer Sheath */}
                 <path
                   d={station.wirePath}
                   fill="none"
@@ -331,7 +646,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   strokeWidth={isSelected ? 2.5 : 1.2}
                   opacity={isSelected ? 1.0 : 0.6}
                 />
-                {/* Conduit Junction Clamps */}
                 <rect
                   x={station.cx - 2}
                   y={50}
@@ -351,7 +665,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             if (isSelected) {
               return (
                 <g key={`conduit-active-${station.sensorName}`}>
-                  {/* Glowing Highlight Sheath */}
                   <path
                     d={station.wirePath}
                     fill="none"
@@ -360,7 +673,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                     opacity="0.3"
                     filter="url(#blueGlow)"
                   />
-                  {/* High-frequency animated telemetry dash stream */}
                   <path
                     d={station.wirePath}
                     fill="none"
@@ -368,7 +680,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                     strokeWidth="1.8"
                     className="telemetry-active-wire"
                   />
-                  {/* Animated telemetry packet traveling from sensor probe into DAQ */}
                   <circle r="3.5" fill="#3563FF" filter="url(#blueGlow)">
                     <animateMotion
                       path={station.wirePath}
@@ -387,7 +698,6 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
               );
             }
 
-            // If processing, subtle background flow on all channels
             if (isProcessing) {
               return (
                 <path
@@ -409,11 +719,9 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           {/* DAQ / EGPM EDGE CONCENTRATOR ENCLOSURE (Top Right, x=605..668, y=28..84)  */}
           {/* ========================================================================= */}
           <g>
-            {/* Cable Gland Interface Plate */}
             <rect x="601" y="44" width="4" height="16" fill="#4B5563" rx="1" />
             <circle cx="603" cy="52" r="2.5" fill="#171717" />
 
-            {/* Enclosure Outer Chassis */}
             <rect
               x="605"
               y="28"
@@ -421,10 +729,9 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
               height="56"
               rx="3"
               fill="#171717"
-              stroke="#374151"
-              strokeWidth="1.5"
+              stroke={isCriticalHeat ? "#EF4444" : "#374151"}
+              strokeWidth={isCriticalHeat ? 2 : 1.5}
             />
-            {/* Metallic Header Plate */}
             <rect x="605" y="28" width="63" height="12" fill="#262626" rx="2" />
             <text
               x="636"
@@ -439,11 +746,9 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             </text>
 
             {/* Status LEDs & Diagnostic Labels */}
-            {/* LED 1: PWR */}
             <circle cx="616" cy="48" r="2.5" fill="#10B981" />
             <text x="623" y="50" fontSize="5.5" fill="#9CA3AF" fontFamily="monospace">PWR</text>
 
-            {/* LED 2: BUS (Sync/Active) */}
             <circle
               cx="644"
               cy="48"
@@ -453,25 +758,23 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             />
             <text x="651" y="50" fontSize="5.5" fill="#9CA3AF" fontFamily="monospace">BUS</text>
 
-            {/* LED 3: VQ (Quantized Event Sync) */}
             <circle cx="616" cy="60" r="2.5" fill="#8B5CF6" />
             <text x="623" y="62" fontSize="5.5" fill="#9CA3AF" fontFamily="monospace">VQ</text>
 
-            {/* LED 4: HAZ (Fault/Hazard Alert) */}
             <circle
               cx="644"
               cy="60"
               r="2.5"
-              fill={isUnreliable ? "#EF4444" : isAnomalous ? "#F59E0B" : "#10B981"}
+              fill={isCriticalHeat ? "#EF4444" : isOverheat ? "#F59E0B" : "#10B981"}
+              className={isOverheat ? "animate-ping" : ""}
             />
             <text x="651" y="62" fontSize="5.5" fill="#9CA3AF" fontFamily="monospace">HAZ</text>
 
-            {/* Real-Time Bitstream Sampling Rate Indicator */}
             <text
               x="636"
               y="76"
               fontSize="5.5"
-              fill="#60A5FA"
+              fill={isOverheat ? "#EF4444" : "#60A5FA"}
               textAnchor="middle"
               fontFamily="monospace"
               fontWeight="bold"
@@ -481,11 +784,14 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
           </g>
 
           {/* ========================================================================= */}
-          {/* INTERACTIVE SENSOR PROBE HOTSPOTS & CALIBRATED BADGES                     */}
+          {/* INTERACTIVE SENSOR PROBE HOTSPOTS & LIVE VALUE CALLOUTS                   */}
           {/* ========================================================================= */}
           {SENSOR_STATIONS.map((spot) => {
             const isSelected = selectedSensor.name === spot.sensorName;
             const targetMeta = allSensors.find((s) => s.name === spot.sensorName) || selectedSensor;
+            const liveDisplay = getSensorDisplay(spot.sensorName);
+            const valNum = stepData?.sensor_readings?.[spot.sensorName] ?? 0;
+            const isStationOverheat = valNum > spot.nominalMax;
 
             return (
               <g
@@ -494,14 +800,14 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                 onClick={() => onSelectSensor(targetMeta)}
                 filter="url(#markerShadow)"
               >
-                {/* Ping pulse ring when selected */}
-                {isSelected && (
+                {/* Ping pulse ring when selected or overheating */}
+                {(isSelected || isStationOverheat) && (
                   <circle
                     cx={spot.cx}
                     cy={spot.cy}
                     r="13"
                     fill="none"
-                    stroke="#3563FF"
+                    stroke={isStationOverheat ? "#EF4444" : "#3563FF"}
                     strokeWidth="1.5"
                     className="animate-ping"
                     opacity="0.8"
@@ -514,7 +820,7 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   y1={spot.cy}
                   x2={spot.cx + 9}
                   y2={spot.cy}
-                  stroke={isSelected ? "#3563FF" : "#9CA3AF"}
+                  stroke={isStationOverheat ? "#EF4444" : isSelected ? "#3563FF" : "#9CA3AF"}
                   strokeWidth="0.8"
                 />
                 <line
@@ -522,7 +828,7 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   y1={spot.cy - 9}
                   x2={spot.cx}
                   y2={spot.cy + 9}
-                  stroke={isSelected ? "#3563FF" : "#9CA3AF"}
+                  stroke={isStationOverheat ? "#EF4444" : isSelected ? "#3563FF" : "#9CA3AF"}
                   strokeWidth="0.8"
                 />
 
@@ -531,8 +837,20 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   cx={spot.cx}
                   cy={spot.cy}
                   r="7"
-                  fill={isSelected ? "#3563FF" : "#FFFFFF"}
-                  stroke={isSelected ? "#1D4ED8" : "#4B5563"}
+                  fill={
+                    isStationOverheat
+                      ? "#FEF2F2"
+                      : isSelected
+                      ? "#3563FF"
+                      : "#FFFFFF"
+                  }
+                  stroke={
+                    isStationOverheat
+                      ? "#DC2626"
+                      : isSelected
+                      ? "#1D4ED8"
+                      : "#4B5563"
+                  }
                   strokeWidth="2"
                 />
                 {/* Probe Center Contact Pin */}
@@ -540,30 +858,73 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
                   cx={spot.cx}
                   cy={spot.cy}
                   r="2.5"
-                  fill={isSelected ? "#FFFFFF" : "#3563FF"}
+                  fill={
+                    isStationOverheat
+                      ? "#DC2626"
+                      : isSelected
+                      ? "#FFFFFF"
+                      : "#3563FF"
+                  }
                 />
 
-                {/* Probe Station Engineering Callout Badge */}
+                {/* Probe Station Engineering Callout Badge (NOW WITH LIVE READING) */}
                 <rect
                   x={spot.badgeX}
                   y={spot.badgeY}
-                  width="48"
-                  height="16"
+                  width="56"
+                  height="22"
                   rx="3"
-                  fill={isSelected ? "#171717" : "#FFFFFF"}
-                  stroke={isSelected ? "#3563FF" : "#D1D5DB"}
-                  strokeWidth={isSelected ? 1.5 : 1}
+                  fill={
+                    isStationOverheat
+                      ? "#FEF2F2"
+                      : isSelected
+                      ? "#171717"
+                      : "#FFFFFF"
+                  }
+                  stroke={
+                    isStationOverheat
+                      ? "#EF4444"
+                      : isSelected
+                      ? "#3563FF"
+                      : "#D1D5DB"
+                  }
+                  strokeWidth={isSelected || isStationOverheat ? 1.5 : 1}
                 />
+                {/* Station Label */}
                 <text
-                  x={spot.badgeX + 24}
-                  y={spot.badgeY + 11}
-                  fontSize="8"
-                  fontWeight="600"
+                  x={spot.badgeX + 28}
+                  y={spot.badgeY + 9}
+                  fontSize="7.5"
+                  fontWeight="bold"
                   fontFamily="monospace"
-                  fill={isSelected ? "#FFFFFF" : "#171717"}
+                  fill={
+                    isStationOverheat
+                      ? "#B91C1C"
+                      : isSelected
+                      ? "#FFFFFF"
+                      : "#171717"
+                  }
                   textAnchor="middle"
                 >
                   {spot.label}
+                </text>
+                {/* Live Telemetry Value */}
+                <text
+                  x={spot.badgeX + 28}
+                  y={spot.badgeY + 18}
+                  fontSize="7"
+                  fontWeight="600"
+                  fontFamily="monospace"
+                  fill={
+                    isStationOverheat
+                      ? "#DC2626"
+                      : isSelected
+                      ? "#60A5FA"
+                      : "#4B5563"
+                  }
+                  textAnchor="middle"
+                >
+                  {liveDisplay}
                 </text>
               </g>
             );
@@ -571,7 +932,7 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
         </svg>
 
         {/* Selected Sensor Floating Info Overlay */}
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm border border-[#E5E7EB] rounded p-2.5 text-xs shadow-sm max-w-[210px] pointer-events-none">
+        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm border border-[#E5E7EB] rounded p-2.5 text-xs shadow-sm max-w-[210px] pointer-events-none">
           <div className="flex items-center justify-between gap-1 text-[11px] font-mono font-bold text-[#171717]">
             <span>{selectedSensor.name}</span>
             <span className="text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE]">
@@ -604,17 +965,25 @@ export const TurbofanRig: React.FC<TurbofanRigProps> = ({
             const meta = allSensors.find((s) => s.name === spot.sensorName);
             if (!meta) return null;
             const isSel = selectedSensor.name === meta.name;
+            const valNum = stepData?.sensor_readings?.[spot.sensorName] ?? 0;
+            const isStationOverheat = valNum > spot.nominalMax;
+
             return (
               <button
                 key={meta.name}
                 onClick={() => onSelectSensor(meta)}
-                className={`text-xs px-2.5 py-1 rounded font-mono transition-all border ${
+                className={`text-xs px-2.5 py-1 rounded font-mono transition-all border flex items-center gap-1.5 ${
                   isSel
                     ? "bg-[#3563FF] text-white border-[#3563FF] shadow-xs font-semibold"
+                    : isStationOverheat
+                    ? "bg-[#FEF2F2] text-[#B91C1C] border-[#FCA5A5] hover:bg-[#FEE2E2]"
                     : "bg-[#F9FAFB] text-[#374151] border-[#E5E7EB] hover:bg-[#F3F4F6]"
                 }`}
               >
-                {meta.name} ({spot.sublabel})
+                <span>{meta.name}</span>
+                <span className={`text-[10px] opacity-80`}>
+                  ({getSensorDisplay(meta.name)})
+                </span>
               </button>
             );
           })}
