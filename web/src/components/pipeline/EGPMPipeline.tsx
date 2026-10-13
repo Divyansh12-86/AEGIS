@@ -68,25 +68,6 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           />
         </div>
 
-        {/* Traveling Data Packet along the Pipeline Bus */}
-        <div
-          className="hidden md:block absolute top-[66px] z-20 pointer-events-none transition-all duration-500 ease-out"
-          style={{
-            left: `calc(10% + ${(activeStageIndex / 4) * 80}%)`,
-            transform: "translateX(-50%)",
-          }}
-        >
-          <div className="relative flex items-center justify-center">
-            <span
-              className={`w-3.5 h-3.5 rounded-full bg-[#3563FF] shadow-[0_0_10px_#3563FF] flex items-center justify-center ${
-                isProcessing ? "animate-pulse ring-2 ring-blue-300" : ""
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-            </span>
-          </div>
-        </div>
-
         {/* ---------------- STAGE 1: SENSOR WINDOW ---------------- */}
         <div
           onClick={() => setInspectedStage(1)}
@@ -100,11 +81,11 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
             <span className="text-[#6B7280]">STAGE 1</span>
             {isProcessing && activeStageIndex === 0 ? (
               <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
-                ACQUIRING
+                SLIDING [W=4]
               </span>
             ) : activeStageIndex > 0 || (!isProcessing && activeStageIndex === 4) ? (
               <span className="text-[9px] font-mono font-semibold text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.2 rounded border border-[#A7F3D0]">
-                ✓ READY
+                ✓ BUFFERED
               </span>
             ) : (
               <span className="w-2 h-2 rounded-full bg-[#10B981]" />
@@ -115,21 +96,43 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
             18 channels × W=4 time steps (causal sliding window)
           </div>
 
-          {/* Mini Heatmap Visualization (18x4 grid preview) */}
-          <div className="bg-white border border-[#E5E7EB] rounded p-1.5 mb-2">
-            <div className="grid grid-cols-4 gap-0.5 h-10">
+          {/* Animated Sliding Window Matrix Visualizer */}
+          <div className="bg-white border border-[#E5E7EB] rounded p-1.5 mb-2 relative overflow-hidden">
+            <div
+              className={`grid grid-cols-4 gap-0.5 h-10 transition-all ${
+                isProcessing && activeStageIndex === 0 ? "animate-pulse" : ""
+              }`}
+            >
               {Array.from({ length: 16 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-[1px] transition-colors"
+                  className="rounded-[1px] transition-all"
                   style={{
-                    backgroundColor: `rgba(53, 99, 255, ${HEATMAP_OPACITIES[i]})`,
+                    backgroundColor: `rgba(53, 99, 255, ${HEATMAP_OPACITIES[(i + (isProcessing ? activeStageIndex : 0)) % 16]})`,
                   }}
                 />
               ))}
             </div>
-            <div className="text-[9px] font-mono text-[#9CA3AF] text-center mt-1">
-              [W=4, d=18] Matrix
+
+            {/* Dynamic Sliding Window Bracket Overlay */}
+            <div
+              className={`absolute top-1 bottom-6 border-2 border-[#3563FF] rounded-[2px] pointer-events-none transition-all duration-500 ${
+                isProcessing && activeStageIndex === 0
+                  ? "opacity-100 shadow-[0_0_8px_rgba(53,99,255,0.4)]"
+                  : "opacity-40"
+              }`}
+              style={{
+                left: isProcessing && activeStageIndex === 0 ? "22%" : "6%",
+                right: isProcessing && activeStageIndex === 0 ? "6%" : "22%",
+              }}
+            />
+
+            <div className="text-[9px] font-mono text-[#9CA3AF] text-center mt-1 flex items-center justify-between px-0.5">
+              <span>t-3</span>
+              <span className={isProcessing && activeStageIndex === 0 ? "text-[#3563FF] font-bold" : "text-[#6B7280]"}>
+                Shift [W=4] ▶
+              </span>
+              <span className="font-bold text-[#171717]">t</span>
             </div>
           </div>
 
@@ -151,7 +154,7 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
             <span className="text-[#6B7280]">STAGE 2</span>
             {isProcessing && activeStageIndex === 1 ? (
               <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
-                ENCODING
+                CONV DILATING
               </span>
             ) : activeStageIndex > 1 || (!isProcessing && activeStageIndex === 4) ? (
               <span className="text-[9px] font-mono font-semibold text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.2 rounded border border-[#A7F3D0]">
@@ -166,22 +169,36 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
             3 dilated causal conv blocks (d=1,2,4) → 16-dim latent vector
           </div>
 
-          {/* Latent Vector Representation Visualizer */}
-          <div className="bg-white border border-[#E5E7EB] rounded p-1.5 mb-2">
+          {/* Animated Dilated Convolution & Latent Vector Visualizer */}
+          <div className="bg-white border border-[#E5E7EB] rounded p-1.5 mb-2 relative">
             <div className="flex items-center gap-0.5 h-10 justify-between px-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-2 bg-[#3563FF] rounded-xs transition-all"
-                  style={{
-                    height: `${LATENT_BAR_HEIGHTS[i]}px`,
-                    opacity: LATENT_BAR_OPACITIES[i],
-                  }}
-                />
-              ))}
+              {Array.from({ length: 8 }).map((_, i) => {
+                const isEncoderActive = isProcessing && activeStageIndex === 1;
+                return (
+                  <div
+                    key={i}
+                    className={`w-2 bg-[#3563FF] rounded-xs transition-all duration-300 ${
+                      isEncoderActive ? "animate-pulse" : ""
+                    }`}
+                    style={{
+                      height: `${
+                        isEncoderActive
+                          ? Math.round(12 + ((i * 7 + 13) % 24))
+                          : LATENT_BAR_HEIGHTS[i]
+                      }px`,
+                      opacity: LATENT_BAR_OPACITIES[i],
+                      transitionDelay: `${i * 35}ms`,
+                    }}
+                  />
+                );
+              })}
             </div>
-            <div className="text-[9px] font-mono text-[#9CA3AF] text-center mt-1">
-              z_t ∈ ℝ^16 (Latent Space)
+            <div className="text-[9px] font-mono text-[#9CA3AF] text-center mt-1 flex items-center justify-between px-0.5">
+              <span>d=1,2,4</span>
+              <span className={isProcessing && activeStageIndex === 1 ? "text-[#3563FF] font-bold animate-pulse" : "text-[#4B5563]"}>
+                {isProcessing && activeStageIndex === 1 ? "Filtering..." : "z_t ∈ ℝ¹⁶"}
+              </span>
+              <span>16-dim</span>
             </div>
           </div>
 
