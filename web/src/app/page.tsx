@@ -210,6 +210,7 @@ export default function EGPMIndustrialSimulation() {
             <TemporalExplorer
               history={history}
               stepData={stepData}
+              onSelectStepIndex={setStepIndex}
             />
           </div>
           <div className="lg:col-span-6">
