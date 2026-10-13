@@ -37,7 +37,9 @@ export default function EGPMIndustrialSimulation() {
   // Fetch step data when stepIndex or scenario changes
   useEffect(() => {
     let isCancelled = false;
+    let stageInterval: NodeJS.Timeout | null = null;
     setIsProcessing(true);
+    setActiveStageIndex(0);
 
     fetchInferenceStep("DS01_u2", currentScenarioId, stepIndex).then((res) => {
       if (!isCancelled) {
@@ -48,31 +50,34 @@ export default function EGPMIndustrialSimulation() {
           return updated.slice(-10); // keep last 10 steps
         });
 
-        // Stage animation pulse
+        // Stage animation: deliberate, observable progression through all 5 neuro-symbolic stages
         let stage = 0;
-        const interval = setInterval(() => {
+        const stageDuration = Math.max(250, Math.round(450 / speed));
+        stageInterval = setInterval(() => {
           stage += 1;
           if (stage <= 4) {
             setActiveStageIndex(stage);
           } else {
-            clearInterval(interval);
+            if (stageInterval) clearInterval(stageInterval);
             setIsProcessing(false);
           }
-        }, 80);
+        }, stageDuration);
       }
     });
 
     return () => {
       isCancelled = true;
+      if (stageInterval) clearInterval(stageInterval);
     };
-  }, [stepIndex, currentScenarioId]);
+  }, [stepIndex, currentScenarioId, speed]);
 
   // Simulation playback timer
   useEffect(() => {
     if (!isPlaying) return;
 
     const currentScenario = SCENARIOS[currentScenarioId] || SCENARIOS.scenario_a;
-    const intervalTime = Math.max(800, 2400 / speed);
+    // Allow the 5 stages to complete (5 * 450ms = 2250ms), dwell on the prediction, then advance
+    const intervalTime = Math.max(2600, Math.round(3400 / speed));
 
     const timer = setInterval(() => {
       setStepIndex((prev) => {

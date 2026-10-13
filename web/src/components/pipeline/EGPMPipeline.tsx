@@ -68,18 +68,47 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           />
         </div>
 
+        {/* Traveling Data Packet along the Pipeline Bus */}
+        <div
+          className="hidden md:block absolute top-[66px] z-20 pointer-events-none transition-all duration-500 ease-out"
+          style={{
+            left: `calc(10% + ${(activeStageIndex / 4) * 80}%)`,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <div className="relative flex items-center justify-center">
+            <span
+              className={`w-3.5 h-3.5 rounded-full bg-[#3563FF] shadow-[0_0_10px_#3563FF] flex items-center justify-center ${
+                isProcessing ? "animate-pulse ring-2 ring-blue-300" : ""
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            </span>
+          </div>
+        </div>
+
         {/* ---------------- STAGE 1: SENSOR WINDOW ---------------- */}
         <div
           onClick={() => setInspectedStage(1)}
           className={`relative z-10 bg-[#F9FAFB] border rounded p-3 cursor-pointer transition-all hover:border-[#3563FF] ${
             activeStageIndex === 0
-              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white"
+              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white shadow-xs"
               : "border-[#E5E7EB]"
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#6B7280] mb-1.5">
-            <span>STAGE 1</span>
-            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+            <span className="text-[#6B7280]">STAGE 1</span>
+            {isProcessing && activeStageIndex === 0 ? (
+              <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
+                ACQUIRING
+              </span>
+            ) : activeStageIndex > 0 || (!isProcessing && activeStageIndex === 4) ? (
+              <span className="text-[9px] font-mono font-semibold text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.2 rounded border border-[#A7F3D0]">
+                ✓ READY
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+            )}
           </div>
           <div className="font-mono text-xs font-bold text-[#171717]">Sensor Window</div>
           <div className="text-[10px] text-[#6B7280] mt-0.5 mb-2 leading-tight">
@@ -114,13 +143,23 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           onClick={() => setInspectedStage(2)}
           className={`relative z-10 bg-[#F9FAFB] border rounded p-3 cursor-pointer transition-all hover:border-[#3563FF] ${
             activeStageIndex === 1
-              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white"
+              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white shadow-xs"
               : "border-[#E5E7EB]"
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#6B7280] mb-1.5">
-            <span>STAGE 2</span>
-            <span className="w-2 h-2 rounded-full bg-[#3563FF]" />
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+            <span className="text-[#6B7280]">STAGE 2</span>
+            {isProcessing && activeStageIndex === 1 ? (
+              <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
+                ENCODING
+              </span>
+            ) : activeStageIndex > 1 || (!isProcessing && activeStageIndex === 4) ? (
+              <span className="text-[9px] font-mono font-semibold text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.2 rounded border border-[#A7F3D0]">
+                ✓ z_t ∈ ℝ¹⁶
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-[#3563FF]" />
+            )}
           </div>
           <div className="font-mono text-xs font-bold text-[#171717]">Causal Temporal Encoder</div>
           <div className="text-[10px] text-[#6B7280] mt-0.5 mb-2 leading-tight">
@@ -156,13 +195,23 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           onClick={() => setInspectedStage(3)}
           className={`relative z-10 bg-[#F9FAFB] border rounded p-3 cursor-pointer transition-all hover:border-[#3563FF] ${
             activeStageIndex === 2
-              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white"
+              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white shadow-xs"
               : "border-[#E5E7EB]"
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#6B7280] mb-1.5">
-            <span>STAGE 3</span>
-            <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+            <span className="text-[#6B7280]">STAGE 3</span>
+            {isProcessing && activeStageIndex === 2 ? (
+              <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
+                QUANTIZING
+              </span>
+            ) : activeStageIndex > 2 || (!isProcessing && activeStageIndex === 4) ? (
+              <span className="text-[9px] font-mono font-semibold text-[#8B5CF6] bg-[#F5F3FF] px-1.5 py-0.2 rounded border border-[#DDD6FE]">
+                ✓ TOKEN {eventSymbol}
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
+            )}
           </div>
           <div className="font-mono text-xs font-bold text-[#171717]">VQ Event Tokenizer</div>
           <div className="text-[10px] text-[#6B7280] mt-0.5 mb-2 leading-tight">
@@ -190,13 +239,23 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           onClick={() => setInspectedStage(4)}
           className={`relative z-10 bg-[#F9FAFB] border rounded p-3 cursor-pointer transition-all hover:border-[#3563FF] ${
             activeStageIndex === 3
-              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white"
+              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white shadow-xs"
               : "border-[#E5E7EB]"
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#6B7280] mb-1.5">
-            <span>STAGE 4</span>
-            <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+            <span className="text-[#6B7280]">STAGE 4</span>
+            {isProcessing && activeStageIndex === 3 ? (
+              <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
+                INFERRING
+              </span>
+            ) : activeStageIndex > 3 || (!isProcessing && activeStageIndex === 4) ? (
+              <span className="text-[9px] font-mono font-semibold text-[#D97706] bg-[#FFFBEB] px-1.5 py-0.2 rounded border border-[#FDE68A]">
+                ✓ S{stateId} (τ={dwell})
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+            )}
           </div>
           <div className="font-mono text-xs font-bold text-[#171717]">Explicit-Duration HSMM</div>
           <div className="text-[10px] text-[#6B7280] mt-0.5 mb-2 leading-tight">
@@ -233,13 +292,23 @@ export const EGPMPipeline: React.FC<EGPMPipelineProps> = ({
           onClick={() => setInspectedStage(5)}
           className={`relative z-10 bg-[#F9FAFB] border rounded p-3 cursor-pointer transition-all hover:border-[#3563FF] ${
             activeStageIndex === 4
-              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white"
+              ? "ring-2 ring-[#3563FF] border-[#3563FF] bg-white shadow-xs"
               : "border-[#E5E7EB]"
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#6B7280] mb-1.5">
-            <span>STAGE 5</span>
-            <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1.5">
+            <span className="text-[#6B7280]">STAGE 5</span>
+            {isProcessing && activeStageIndex === 4 ? (
+              <span className="text-[9px] font-mono font-bold text-[#3563FF] bg-[#EFF6FF] px-1.5 py-0.2 rounded border border-[#BFDBFE] animate-pulse">
+                CALIBRATING
+              </span>
+            ) : !isProcessing ? (
+              <span className="text-[9px] font-mono font-semibold text-[#10B981] bg-[#ECFDF5] px-1.5 py-0.2 rounded border border-[#A7F3D0]">
+                ✓ CALIBRATED
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+            )}
           </div>
           <div className="font-mono text-xs font-bold text-[#171717]">Predictive Task Heads</div>
           <div className="text-[10px] text-[#6B7280] mt-0.5 mb-2 leading-tight">
